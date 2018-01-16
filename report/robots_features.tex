@@ -1,0 +1,41 @@
+\newpage
+\section{Особенности строения робота}\label{part_robot_features}
+Особенности строения использованного в работе робота-машинки (см.~рисунок~\ref{img_robot_gen_view}) даются следующим перечислением:
+\begin{itemize}
+    \item робот собран из конструктора LEGO Mindstorms EV3;
+    \item робот имеет два двигателя со встроенными энкодерами, один из которых (тяговый, 1) приводит в движение задние колеса, а второй (рулевой, 2) поворачивает передние;
+    \item усилие с тягового двигателя на задние колеса передается через дифференциал~3 с передаточным отношением, обеспечивающим равенство угловой скорости вращения вала двигателя с полусуммой угловых скоростей задних колес;
+    \item рулевые колеса связаны друг с другом и с рулевым двигателем через рулевую трапецию, кинематическая схема которой изображена на рисунке~\ref{img_trapezoid_scheme};
+    \begin{figure}[h]
+        \centering
+        \includegraphics[width= 0.5\textwidth]{trapezoid_kinematic_scheme.pdf}
+        \caption{Кинематическая схема рулевой трапеции: 1~--- коромысло, приводимое в движение рулевым двигателем, 2~--- шасси робота, 3~--- шатун, 4,5~--- коромысла, жестко соединенные с осями вращения передних колес.}
+        \label{img_trapezoid_scheme}
+    \end{figure}
+    \item для измерения расстояний до объектов окружающей среды робот имеет два ультразвуковых дальномера~4,~5;
+    \item для определения собственного угла поворота и угловой скорости робот снабжен возвращающим их датчиком-гироскопом~6.
+\end{itemize}
+
+\begin{figure}[h!]
+    \begin{minipage}[h]{0.47\textwidth}
+        \centering{ \includegraphics[width=\textwidth]{car_1.jpg} \\ a)}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[h]{0.47\textwidth}
+        \centering{ \includegraphics[width=\textwidth]{car_2.jpg} \\ б)}
+    \end{minipage}
+    \vfill
+    \begin{minipage}[h]{0.47\textwidth}
+        \centering{ \includegraphics[width=\textwidth]{car_3.jpg} \\ в)}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[h]{0.47\textwidth}
+        \centering{ \includegraphics[width=\textwidth]{car_4.jpg} \\ г)}
+    \end{minipage}
+    \vspace{0.5cm}
+    \caption{Внешний вид использованного в работе робота-машинки: a~--- с одного из бортов, б~--- с другого, в~--- снизу, г~--- спереди без рулевого двигателя и некоторых его креплений.}
+    \label{img_robot_gen_view}
+\end{figure}
+
+\newpage
+\mbox{}
