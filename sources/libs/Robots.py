@@ -9,7 +9,7 @@ from libs.Localization import Localization
 from libs.VelocityController import VelocityController
 
 from libs.TrajectoryStuff import Point, StraightLine
-from libs.TrajectoryControllers import ControllerWithCoordinateTransform, ControllerWithLinearization
+from libs.TrajectoryControllers import ControllerWithLinearization
 
 
 class RobotState:
@@ -45,23 +45,15 @@ class LegoCar:
     SOFT_MAX_PHI = 0.3
     R = 0.0432 / 2          # wheel radius
     L = 0.21 - R            # wheelbase
-    D = 0.112               # distance between the axes of rotation of the front wheels
-    # Ultrasonic Sensors positions respect of the middle of the rear axle
-    US_FRONT = (L, 0.06)
-    US_REAR = (-0.015, 0.06)
 
-    def __init__(self, port_motor_rear=OUTPUT_A, port_motor_steer=OUTPUT_B,
-                 port_sensor_gyro='in1', port_sensor_us_front='in2', port_sensor_us_rear='in3'):
+
+    def __init__(self, port_motor_rear=OUTPUT_A, port_motor_steer=OUTPUT_B, port_sensor_gyro='in1'):
 
         # initialization of devices
         self.__button_halt = Button()
-
         self.__motor_rear = LargeMotor(port_motor_rear)
         self.__motor_steer = LargeMotor(port_motor_steer)
-
         self.__sensor_gyro = GyroSensor(port_sensor_gyro)
-        self.__sensor_us_rear = UltrasonicSensor(port_sensor_us_rear)
-        self.__sensor_us_front = UltrasonicSensor(port_sensor_us_front)
 
         self.__velocity_controller = VelocityController(self, 0, 0)
 
@@ -83,9 +75,7 @@ class LegoCar:
         self.__sensor_gyro.mode = self.__sensor_gyro.modes[0]
 
     def getDevice(self, what):
-        if what in ['US_SENSORS']:
-            return self.__sensor_us_front, self.__sensor_us_rear
-        elif what in ['MOTORS']:
+        if what in ['MOTORS']:
             return self.__motor_rear, self.__motor_steer
         elif what in ['GYRO']:
             return self.__sensor_gyro
@@ -94,7 +84,7 @@ class LegoCar:
         return self.__robot_state
 
     def turnWheel(self, phi_desired):
-        """ Turned front wheels on the desired angle 'phi_desired '"""
+        """ Turns front wheels on the desired angle 'phi_desired' """
         pid_phi = PID(100.0, 500.0, 5.0, 100, -100)
         t = 0
         clock = Clock()
@@ -113,7 +103,6 @@ class LegoCar:
             Examples:
                 mode_1. move(trajectory=given_trajectory) --- following given trajectory;
                 mode_2. move(vel_linear=0.3, vel_angular=0.3) --- moving with given velocities;
-                mode_3. move(`mode_1 or mode_2`, mapping=mapping) --- moving and mapping.
         """
         # initialization for current mode
         if vel_linear and vel_angular not in [None]:
@@ -136,8 +125,6 @@ class LegoCar:
                 u_v, u_phi = self.__velocity_controller.getControls(radians(self.__motor_rear.speed),
                                                                     radians(self.__motor_steer.position),
                                                                     radians(omega), dt)
-                if mapping is not None:
-                    mapping.updateMap(x, y, radians(theta))
 
                 self.__motor_rear.run_direct(duty_cycle_sp=u_v)
                 self.__motor_steer.run_direct(duty_cycle_sp=u_phi)
@@ -152,6 +139,7 @@ class LegoCar:
         raise SystemExit
 
 
+# for testing purposes
 if __name__ == '__main__':
     car = LegoCar()
 
@@ -164,12 +152,3 @@ if __name__ == '__main__':
     # follow trajectory
     trajectory_line = StraightLine(Point(0, 1), Point(4, 1), 0.2)
     car.move(trajectory=trajectory_line)
-
-    # trajectory_point = OnlyPoint(Point(0, 0))
-    # car.move(trajectory=trajectory_point)
-
-    # # moving straight and mapping
-    # susf, susr = car.getDevice('US_SENSORS')
-    # mapping = Mapping(car, susf, susr)    # need need import Mapping module
-    # car.move(trajectory=trajectory_line, mapping=mapping)
-    # # car.move(vel_linear=0.3, vel_angular=0, mapping=mapping)  # also possible
