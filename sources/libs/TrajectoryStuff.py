@@ -1,4 +1,4 @@
-from math import sin, cos, tan, atan, atan2, sqrt, pi, copysign
+from math import sin, cos, atan2, sqrt, pi, copysign
 
 
 class Point:
@@ -49,16 +49,16 @@ class StraightLine(TrajectoryLine):
 
 class CircleLine(TrajectoryLine):
 
-    def __init__(self, point_c, point_0, point_1, v):
+    def __init__(self, point_c, point_0, point_1, v, direction):
         super(CircleLine, self).__init__()
         self.point_c, self.point_1 = point_c, point_1
         self.angle_0 = atan2(point_0.y - point_c.y, point_0.x - point_c.x)
         angle_1 = atan2(point_1.y - point_c.y, point_1.x - point_c.x)
         delta_angle = angle_1 - self.angle_0
-        if delta_angle > pi:
-            delta_angle = delta_angle - 2 * pi;
-        elif delta_angle < -pi:
-            delta_angle = delta_angle + 2 * pi;
+        if direction == "cw" and delta_angle > 0:
+            delta_angle = delta_angle - 2 * pi
+        elif direction == "ccw" and delta_angle < 0:
+            delta_angle = delta_angle + 2 * pi
         self.radius = sqrt( (point_0.y - point_c.y)**2 + (point_0.x - point_c.x)**2 )
         self.omega = copysign(1, delta_angle) * v / self.radius
         self.end_time = abs(delta_angle * self.radius) / v

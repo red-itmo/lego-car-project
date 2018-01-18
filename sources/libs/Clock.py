@@ -3,7 +3,7 @@ import time
 
 class Clock:
     """
-        Clock for compute delta time
+        Clock to compute delta time
     """
 
     __start_time = 0

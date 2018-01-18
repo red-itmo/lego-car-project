@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-from math import atan, pi
+from math import atan, pi, radians
 from libs.PID import PID
 
+R = 0.0432 / 2
 
 class VelocityController:
 
@@ -9,7 +10,7 @@ class VelocityController:
         self.robot = robot
         self.v_desired = v_desired
         self.omega_desired = omega_desired
-        self.pid_v = PID(2000.0, 5000.0, 0.0, 100, -100)
+        self.pid_v = PID(10.0 / R , 90.0 / R, 0.05 / R, 100, -100)
         self.pid_phi = PID(100.0, 500.0, 5.0, 100, -100)
 
 

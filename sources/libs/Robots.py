@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from math import pi, radians
+from math import radians
 from ev3dev.ev3 import Sound, Button, GyroSensor, UltrasonicSensor, LargeMotor, OUTPUT_A, OUTPUT_B
 
 from libs.Clock import Clock
@@ -8,7 +8,6 @@ from libs.PID import PID
 from libs.Localization import Localization
 from libs.VelocityController import VelocityController
 
-from libs.TrajectoryStuff import Point, StraightLine
 from libs.TrajectoryControllers import ControllerWithLinearization
 
 
@@ -44,8 +43,7 @@ class LegoCar:
     HARD_MAX_PHI = 0.61
     SOFT_MAX_PHI = 0.3
     R = 0.0432 / 2          # wheel radius
-    L = 0.21 - R            # wheelbase
-
+    L = 0.165            # wheelbase
 
     def __init__(self, port_motor_rear=OUTPUT_A, port_motor_steer=OUTPUT_B, port_sensor_gyro='in1'):
 
@@ -98,34 +96,25 @@ class LegoCar:
             self.__motor_steer.run_direct(duty_cycle_sp=u_phi)
         Sound.speak('Wheels were turned!')
 
-    def move(self, vel_linear=None, vel_angular=None, trajectory=None, mapping=None):
-        """
-            Examples:
-                mode_1. move(trajectory=given_trajectory) --- following given trajectory;
-                mode_2. move(vel_linear=0.3, vel_angular=0.3) --- moving with given velocities;
-        """
-        # initialization for current mode
-        if vel_linear and vel_angular not in [None]:
-            self.__velocity_controller.setTargetVelocities(vel_linear, vel_angular)
+    def velocity_move(self, vel_linear, vel_angular, time):
+    # initialization for current mode
+        self.__velocity_controller.setTargetVelocities(vel_linear, vel_angular)
 
         clock = Clock()
-        while True:
+        fh = open("test.txt", "w")
+        while clock.getCurrentTime() <= time:
             try:
                 t, dt = clock.getTandDT()
 
                 theta, omega = [-x for x in self.__sensor_gyro.rate_and_angle]  # !!! returns ANGLE AND RATE :)
                 x, y, dx, dy = self.__localization.getData(radians(theta), radians(self.__motor_rear.speed), dt)
-                self.__robot_state = [x, y, dx, dy, theta, omega]     # update state
-
-                if trajectory is not None:
-                    point = trajectory.getCoordinates(t)
-                    v_des, omega_des = self.__trajectory_controller.getControls(point, x, y, dx, dy, radians(theta), dt)
-                    self.__velocity_controller.setTargetVelocities(v_des, omega_des)
+                self.__robot_state = [x, y, dx, dy, theta, omega]  # update state
 
                 u_v, u_phi = self.__velocity_controller.getControls(radians(self.__motor_rear.speed),
                                                                     radians(self.__motor_steer.position),
                                                                     radians(omega), dt)
-
+                                                                    
+                fh.write("%f %f\n" %(t, radians(omega)))
                 self.__motor_rear.run_direct(duty_cycle_sp=u_v)
                 self.__motor_steer.run_direct(duty_cycle_sp=u_phi)
 
@@ -134,21 +123,38 @@ class LegoCar:
             except KeyboardInterrupt:
                 break
         # off motors
+        fh.close()
         self.__motor_rear.duty_cycle_sp = 0
         self.__motor_steer.duty_cycle_sp = 0
         raise SystemExit
 
+    def trajectory_move(self, trajectory):
+        clock = Clock()
+        while not trajectory.is_end:
+            try:
+                t, dt = clock.getTandDT()
 
-# for testing purposes
-if __name__ == '__main__':
-    car = LegoCar()
+                theta, omega = [-x for x in self.__sensor_gyro.rate_and_angle]  # !!! returns ANGLE AND RATE :)
+                x, y, dx, dy = self.__localization.getData(radians(theta), radians(self.__motor_rear.speed), dt)
+                self.__robot_state = [x, y, dx, dy, theta, omega]  # update state
 
-    # turn forward wheels on the 10 degrees
-    car.turnWheel(5)
+                point = trajectory.getCoordinates(t)
+                v_des, omega_des = self.__trajectory_controller.getControls(point, x, y, dx, dy, radians(theta), dt)
+                self.__velocity_controller.setTargetVelocities(v_des, omega_des)
 
-    # move with desired velocities
-    car.move(vel_linear=0.3, vel_angular=0.)
+                u_v, u_phi = self.__velocity_controller.getControls(radians(self.__motor_rear.speed),
+                                                                    radians(self.__motor_steer.position),
+                                                                    radians(omega), dt)
 
-    # follow trajectory
-    trajectory_line = StraightLine(Point(0, 1), Point(4, 1), 0.2)
-    car.move(trajectory=trajectory_line)
+                self.__motor_rear.run_direct(duty_cycle_sp=u_v)
+                self.__motor_steer.run_direct(duty_cycle_sp=u_phi)
+
+
+                if self.__button_halt.enter:
+                    break
+            except KeyboardInterrupt:
+                break
+        # off motors
+        self.__motor_rear.duty_cycle_sp = 0
+        self.__motor_steer.duty_cycle_sp = 0
+        #raise SystemExit

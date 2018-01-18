@@ -15,6 +15,7 @@ class Localization:
     def getData(self, theta, motor_speed, dt):
         # robot's velocity
         v = motor_speed * self.__car.R
+        
 
         # robot's linear velocities
         vx = v * cos(theta)

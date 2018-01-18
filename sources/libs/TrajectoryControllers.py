@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from math import pi, sin, cos, sqrt, atan2
+from math import sin, cos
 
 
 class TrajectoryController:
