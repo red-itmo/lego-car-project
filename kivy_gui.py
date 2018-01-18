@@ -32,7 +32,7 @@ dest_exsist = False
 is_drawing_obst = False
 all_obst_points = []
 dest = "Not yet entered"
-px_to_m = 3.60 / (420*math.sqrt(2))
+px_to_m = 3.60 / math.hypot(420,300)
 
 class KivyCamera(Image):
 	def __init__(self, capture, fps, **kwargs):
@@ -93,17 +93,20 @@ class CamApp(App):
 		teleop_layout.add_widget(angle_vel_label)
 		teleop_layout.add_widget(dist_left_label)
 		self.cam = FloatLayout()
-		clearbtn = Button(text = 'Clear destination',size_hint=(1, 0.1),pos_hint = {'x':.0,'top': 1})
+		clear_dest_btn = Button(text = 'Clear destination',size_hint=(1, 0.1),pos_hint = {'x':.0,'top': 1})
+		clear_obst_btn = Button(text = 'Clear obstacles',size_hint=(1, 0.1),pos_hint = {'x':.0,'top': 1})
+		clear_obst_btn.bind(on_release=self.clear_obstacles)
 		self.drawbtn = Button(text = 'Start drawing path',size_hint=(1, 0.1),pos_hint = {'x':.0,'top':.5})
 		self.start_obst_drawing_btn = Button(text = 'Start Obstacles drawing',size_hint=(1, 0.1))
 		self.start_obst_drawing_btn.bind(on_release=self.obstacles_drawing_mode)
 		self.cam.add_widget(self.my_camera)
 		self.painter = self.MyPaintWidget()
 		dest_label = Label(text ="Destination point: " + str(dest))
-		clearbtn.bind(on_release = self.clear_canvas)
+		clear_dest_btn.bind(on_release = self.clear_dest_point)
 		self.drawbtn.bind(on_release = self.draw_path_btn)
 		self.cam.add_widget(self.painter)
-		button_layout.add_widget(clearbtn)
+		button_layout.add_widget(clear_dest_btn)
+		button_layout.add_widget(clear_obst_btn)
 		button_layout.add_widget(dest_label)
 		button_layout.add_widget(self.start_obst_drawing_btn)
 		button_layout.add_widget(self.drawbtn)
@@ -112,21 +115,43 @@ class CamApp(App):
 		general_layout.add_widget(button_layout)
 		return general_layout
 
-	def clear_canvas(self, obj):
+	def clear_dest_point(self, obj):
 		global dest_exsist
 		global dest_label
+		global all_obst_points
+		global dest
 		dest_label.text = "Not yet entered"
 		dest_exsist = False
+		all_obst_points.append([0,0])
 		self.painter.canvas.clear()
+		dest = "Not yet entered"
+		with self.painter.canvas:
+			Color(1,0,0)
+			for n in range(0,len(all_obst_points)-1):
+				if(all_obst_points[n]==[0,0] or all_obst_points[n+1]==[0,0]):
+					continue
+				Line(points = [all_obst_points[n][0],all_obst_points[n][1],all_obst_points[n+1][0],all_obst_points[n+1][1]],width = 3)
 
+
+	def clear_obstacles(self,obj):
+		global dest
+		global all_obst_points
+		all_obst_points = [[0,0]]
+		self.painter.canvas.clear()
+		with self.painter.canvas:
+			Color(1,0,0)
+			d=10.
+			#print(dest)
+			if(not type(dest) is str):
+				Ellipse(pos=((dest[0]/px_to_m-d/2),cam_pose[1]+dest[1]/px_to_m-d/2),size=(d,d))
 
 	def draw_path_btn(self,obj):
 		global is_drawing
 		is_drawing = not is_drawing
 		if(is_drawing):
-			self.drawbtn.text = 'Stop path drowing'
+			self.drawbtn.text = 'Stop path drawing'
 		else:
-			self.drawbtn.text = 'Start path drowing'
+			self.drawbtn.text = 'Start path drawing'
 
 	def obstacles_drawing_mode(self,obj):
 		global is_drawing_obst
@@ -135,6 +160,7 @@ class CamApp(App):
 			self.start_obst_drawing_btn.text = "Stop Obstacles drawing"
 		else:
 			self.start_obst_drawing_btn.text = "Start Obstacles drawing"
+
 	class MyPaintWidget(Widget):
 
 
@@ -183,12 +209,14 @@ class CamApp(App):
 				return math.sqrt(math.pow(x1-x2,2)+math.pow(y1-y2,2))
 
 			if(is_drawing_obst):
-				all_obst_points.append([touch.x,touch.y])
-				self.obst_points.append([touch.x,touch.y])
-				with self.canvas:
-					if(len(self.obst_points)>1):
-						Line(points = [self.obst_points[-2][0],self.obst_points[-2][1],self.obst_points[-1][0],self.obst_points[-1][1]],width = 3)
-						
+				if(touch.x > cam_pose[0] and touch.y > cam_pose[1] and touch.x < cam_pose[0]+cam_res[0] and touch.y < cam_pose[1]+cam_res[1]):
+					all_obst_points.append([touch.x,touch.y])
+					self.obst_points.append([touch.x,touch.y])
+					with self.canvas:
+
+						if(len(self.obst_points)>1):
+							Line(points = [self.obst_points[-2][0],self.obst_points[-2][1],self.obst_points[-1][0],self.obst_points[-1][1]],width = 3)
+							
 				
 			else:	
 				self.second_points.append([touch.x,touch.y])
@@ -216,7 +244,10 @@ class CamApp(App):
 								self.canvas.clear()
 								Color(1,0,0)
 								for n in range(0,len(all_obst_points)-1):
+									if(all_obst_points[n]==[0,0] or all_obst_points[n+1]==[0,0]):
+										continue
 									Line(points = [all_obst_points[n][0],all_obst_points[n][1],all_obst_points[n+1][0],all_obst_points[n+1][1]],width = 3)
+								
 								Color(1,0,0)
 								Line(points = [self.dest_px[0],self.dest_px[1],circle_x,circle_y])
 								#Line(points = [circle_x,circle_y,circle_x+(-10*touch_cos+(10)*touch_sin),circle_y+((10)*touch_cos+10*touch_sin)])
