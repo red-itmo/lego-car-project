@@ -7,6 +7,7 @@ from libs.PID import PID
 
 from libs.Localization import Localization
 from libs.VelocityController import VelocityController
+from libs.PathController import PathController
 
 from libs.TrajectoryControllers import ControllerWithLinearization
 
@@ -57,6 +58,7 @@ class LegoCar:
 
         # NOTE: possible using other controllers. Change only here!
         self.__trajectory_controller = ControllerWithLinearization()
+        self.__path_controller = PathController()
 
         self.__localization = Localization(self)
         self.__robot_state = [0, 0, 0, 0, 0, 0]    # x,y, dx,dy, theta,omega
@@ -138,8 +140,38 @@ class LegoCar:
                 x, y, dx, dy = self.__localization.getData(radians(theta), radians(self.__motor_rear.speed), dt)
                 self.__robot_state = [x, y, dx, dy, theta, omega]  # update state
 
-                point = trajectory.getCoordinates(t)
+                point = trajectory.getCoordinatesTime(t)
                 v_des, omega_des = self.__trajectory_controller.getControls(point, x, y, dx, dy, radians(theta), dt)
+                self.__velocity_controller.setTargetVelocities(v_des, omega_des)
+
+                u_v, u_phi = self.__velocity_controller.getControls(radians(self.__motor_rear.speed),
+                                                                    radians(self.__motor_steer.position),
+                                                                    radians(omega), dt)
+
+                self.__motor_rear.run_direct(duty_cycle_sp=u_v)
+                self.__motor_steer.run_direct(duty_cycle_sp=u_phi)
+
+                if self.__button_halt.enter:
+                    break
+            except KeyboardInterrupt:
+                break
+        # off motors
+        self.__motor_rear.duty_cycle_sp = 0
+        self.__motor_steer.duty_cycle_sp = 0
+        #raise SystemExit
+
+    def path_move(self, trajectory, v_des = 0.2):
+        clock = Clock()
+        while not trajectory.is_end:
+            try:
+                t, dt = clock.getTandDT()
+
+                theta, omega = [-x for x in self.__sensor_gyro.rate_and_angle]  # !!! returns ANGLE AND RATE :)
+                x, y, dx, dy, v_r = self.__localization.getData(radians(theta), radians(self.__motor_rear.speed), dt)
+                self.__robot_state = [x, y, dx, dy, theta, omega]  # update state
+
+                x_ref, y_ref, kappa, t_hat = trajectory.getCoordinatesDistance(x, y)
+                omega_des = self.__path_controller.getControls(v_r, x, y, x_ref, y_ref, radians(theta), kappa, t_hat)
                 self.__velocity_controller.setTargetVelocities(v_des, omega_des)
 
                 u_v, u_phi = self.__velocity_controller.getControls(radians(self.__motor_rear.speed),

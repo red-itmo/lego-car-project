@@ -25,4 +25,4 @@ class Localization:
         self.__x += vx * dt
         self.__y += vy * dt
 
-        return self.__x, self.__y, vx, vy
+        return self.__x, self.__y, vx, vy, v
