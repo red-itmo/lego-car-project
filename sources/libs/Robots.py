@@ -103,7 +103,6 @@ class LegoCar:
         self.__velocity_controller.setTargetVelocities(vel_linear, vel_angular)
 
         clock = Clock()
-        fh = open("test.txt", "w")
         while clock.getCurrentTime() <= time:
             try:
                 t, dt = clock.getTandDT()
@@ -115,8 +114,7 @@ class LegoCar:
                 u_v, u_phi = self.__velocity_controller.getControls(radians(self.__motor_rear.speed),
                                                                     radians(self.__motor_steer.position),
                                                                     radians(omega), dt)
-                                                                    
-                fh.write("%f %f\n" %(t, radians(omega)))
+
                 self.__motor_rear.run_direct(duty_cycle_sp=u_v)
                 self.__motor_steer.run_direct(duty_cycle_sp=u_phi)
 
@@ -125,7 +123,6 @@ class LegoCar:
             except KeyboardInterrupt:
                 break
         # off motors
-        fh.close()
         self.__motor_rear.duty_cycle_sp = 0
         self.__motor_steer.duty_cycle_sp = 0
         raise SystemExit
@@ -161,6 +158,7 @@ class LegoCar:
         #raise SystemExit
 
     def path_move(self, trajectory, v_des = 0.2):
+        fh = open("test.txt", "w")
         clock = Clock()
         while not trajectory.is_end:
             try:
@@ -178,15 +176,16 @@ class LegoCar:
                                                                     radians(self.__motor_steer.position),
                                                                     radians(omega), dt)
 
+                fh.write("%f %f %f %f %f\n" %(t, x, y, x_ref, y_ref))
                 self.__motor_rear.run_direct(duty_cycle_sp=u_v)
                 self.__motor_steer.run_direct(duty_cycle_sp=u_phi)
-
 
                 if self.__button_halt.enter:
                     break
             except KeyboardInterrupt:
                 break
         # off motors
+        fh.close()
         self.__motor_rear.duty_cycle_sp = 0
         self.__motor_steer.duty_cycle_sp = 0
         #raise SystemExit

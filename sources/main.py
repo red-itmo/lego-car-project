@@ -14,9 +14,9 @@ if __name__ == '__main__':
     # trajectory tracking
     # move with desired velocities
     #car.velocity_move(vel_linear= 0.2, vel_angular=0.2, time=3.0)
-    #t1 = CircleLine(Point(0, -1), Point(0, 0), Point(1, -1), 0.2, "ccw")
-    t = StraightLine(Point(0, 0), Point(1, 1), accuracy=0.25)
-    car.path_move(t)
+    #t = CircleLine(Point(0, -1), Point(0, 0), Point(1, -1), "ccw", accuracy=0.2)
+    t = StraightLine(Point(0, 0), Point(1, 0), accuracy=0.02)
+    car.path_move(t, v_des=0.2)
     #t2 = CircleLine(Point(-2, 1), Point(-1, 1), Point(-2, 0), 0.35)
     #trajectory = [t1, t2]
 

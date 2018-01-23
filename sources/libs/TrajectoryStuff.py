@@ -1,4 +1,5 @@
 from math import sin, cos, atan2, sqrt, pi, copysign
+from libs.Auxilary import AngleFinder
 
 
 class Point:
@@ -55,7 +56,6 @@ class StraightLine(TrajectoryLine):
         y_ref = self.point_0.y + s * sin(self.gamma)
         kappa = 0
         t_hat = cos(self.gamma), sin(self.gamma)
-        #print("%f %f %f %f %f %f %f\n" %(s, x_r, y_r, x_ref, y_ref, t_hat[0], t_hat[1]))
         return x_ref, y_ref, kappa, t_hat
 
     def getCoordinatesTime(self, t):
@@ -72,6 +72,7 @@ class CircleLine(TrajectoryLine):
 
     def __init__(self, point_c, point_0, point_1, direction, v=0, accuracy=0):
         super(CircleLine, self).__init__()
+        self.angle_finder = AngleFinder()
         self.point_c, self.point_1 = point_c, point_1
         self.angle_0 = atan2(point_0.y - point_c.y, point_0.x - point_c.x)
         self.angle_1 = atan2(point_1.y - point_c.y, point_1.x - point_c.x)
@@ -90,9 +91,10 @@ class CircleLine(TrajectoryLine):
             self.accuracy = accuracy
 
     def getClosest(self, x_r, y_r):
-        angle_r = atan2(x_r - self.point_c.x, y_r - self.point_c.y)
-        d_alpha = angle_r - self.angle_1
-        if d_alpha > 0:
+        angle_r = self.angle_finder.getAngle(atan2(y_r - self.point_c.y, x_r - self.point_c.x))
+
+        d_alpha = angle_r - self.angle_0
+        if d_alpha >= 0:
             return 2 * pi * self.radius - d_alpha * self.radius if self.direction == "cw" else d_alpha * self.radius
         else:
             return abs(d_alpha * self.radius) if self.direction == "cw" else 2 * pi * self.radius + d_alpha * self.radius
@@ -102,8 +104,8 @@ class CircleLine(TrajectoryLine):
             self.is_end = True
         s = self.getClosest(x_r,  y_r)
         alpha = -s / self.radius if self.direction == "cw" else s / self.radius
-        x_ref = self.radius * cos(alpha + self.angle_0)
-        y_ref = self.radius * sin(alpha + self.angle_0)
+        x_ref = self.point_c.x + self.radius * cos(alpha + self.angle_0)
+        y_ref = self.point_c.y + self.radius * sin(alpha + self.angle_0)
         kappa = -1 / self.radius if self.direction == "cw" else 1 / self.radius
         t_hat = -sin(alpha + self.angle_0), cos(alpha + self.angle_0)
         return x_ref, y_ref, kappa, t_hat
