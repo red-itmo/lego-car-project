@@ -22,3 +22,15 @@ class AngleFinder:
         self.last_angle = bad_angle
 
         return self.true_angle
+
+
+def matmult(X, Y):
+    if len(X[0]) != len(Y):
+        raise ValueError("Matrices size are not factorable")
+    else:
+        result = [[0 for i in range(len(Y[0]))] for j in range(len(X))]
+        for i in range(len(X)):
+            for j in range(len(Y[0])):
+                for k in range(len(Y)):
+                    result[i][j] += X[i][k] * Y[k][j]
+        return result

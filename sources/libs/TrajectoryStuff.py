@@ -1,5 +1,5 @@
 from math import sin, cos, atan2, sqrt, pi, copysign
-from libs.Auxilary import AngleFinder
+from libs.Auxilary import AngleFinder, matmult
 
 
 class Point:
@@ -123,3 +123,136 @@ class CircleLine(TrajectoryLine):
             ax_r = -self.radius * self.omega**2 * cos(phase)
             ay_r = -self.radius * self.omega**2 * sin(phase)
             return TrajectoryPoint(x_r, vx_r, ax_r, y_r, vy_r, ay_r)
+
+class ClothoidLine(TrajectoryLine):
+    def __init__(self, point_1, v=0, accuracy=0):
+        super(ClothoidLine, self).__init__()
+        self.point_1 = point_1
+        self.gamma = 1 if self.point_1.x > 0 else -1
+        self.beta = 1 if self.point_1.y > 0 else -1
+        self.alpha_sign = 1 if self.point_1.x * self.point_1.y > 0 else -1
+        self.alpha, self.s_end = self.find_alpha_and_s_end()
+        self.delta = (self.alpha * self.s_end ** 2) / 2
+        self.flag = 0
+        self.R1 = [[cos(self.delta), -sin(self.delta)], [sin(self.delta), cos(self.delta)]]
+        self.R2_inv = [[cos(self.delta), -sin(self.delta)], [sin(self.delta), cos(self.delta)]]
+
+        self.T1 = [[cos(self.delta), -sin(self.delta), -self.point_1.x],
+                   [sin(self.delta), cos(self.delta), self.point_1.y],
+                   [0, 0, 1]]
+        self.T2_inv = [
+            [cos(self.delta), -sin(self.delta), self.point_1.y * sin(self.delta) + self.point_1.x * cos(self.delta)],
+            [sin(self.delta), cos(self.delta), -self.point_1.y * cos(self.delta) + self.point_1.x * sin(self.delta)],
+            [0, 0, 1]]
+        self.final = matmult(matmult(self.T1, self.T2_inv), [[0], [0], [1]])
+        self.speed = v
+        if self.speed != 0:
+            self.t_end = 2 * self.s_end / self.speed
+        else:
+            self.accuracy = accuracy
+
+    def f(self, x):
+        return (1 + 0.926 * x) / (2 + 1.792 * x + 3.104 * x ** 2)
+
+    def g(self, x):
+        return 1 / (2 + 4.412 * x + 3 + 492 * x ** 2 + 6.67 * x ** 3)
+
+    def Cf(self, x):
+        return 1 / 2 + self.f(x) * sin (pi / 2 * x ** 2 ) - self.g(x) * cos(pi / 2 * x ** 2)
+
+    def Sf(self, x):
+        return 1 / 2 - self.f(x) * cos(pi / 2 * x ** 2) - self.g(x) * sin(pi / 2 * x ** 2)
+
+    def find_alpha_and_s_end(self):
+        # finding s_0
+        k = self.point_1.y / self.point_1.x
+        e = copysign(1, self.beta)
+        s_0 = 0
+        while copysign(1, self.beta) * e > 0:
+            s_0 += 0.1
+            x = self.gamma * sqrt(pi) * self.Cf(sqrt(1/pi) * s_0)
+            y = self.gamma * copysign(1, self.alpha_sign) * sqrt(pi) * self.Sf(sqrt(1/pi) * s_0)
+            e =k * x - y
+
+        # finding alpha and s
+        while abs(e) > 0.001:
+            x = self.gamma * sqrt(pi) * self.Cf(sqrt(1/pi) * s_0)
+            y = self.gamma * copysign(1, self.alpha_sign) * sqrt(pi) * self.Sf(sqrt(1/pi) * s_0)
+            e = k * x - y
+            derive_e = self.gamma * (k * cos(s_0 ** 2 / 2) - copysign(1, self.alpha_sign) * sin(s_0 ** 2 / 2))
+            s_0 = s_0 - 0.1 * e * derive_e
+
+        x = self.gamma * sqrt(pi) * self.Cf(sqrt(1/pi) * s_0)
+        phi = s_0 ** 2 / 2
+        alpha = (x / self.point_1.x) ** 2 * copysign(1, self.alpha_sign)
+        s = sqrt(2 * phi / abs(alpha))
+
+        return alpha, s
+
+    def getClosest(self, x_r, y_r):
+        pass
+
+    def xCoord(self, gamma, alpha, s):
+        return gamma * sqrt(pi / abs(alpha)) * self.Cf(sqrt(abs(alpha) / pi) * s)
+
+    def yCoord(self, gamma, alpha, s):
+        return gamma * copysign(1, alpha) * sqrt(pi / abs(alpha)) * self.Sf(sqrt(abs(alpha) / pi) * s)
+
+    def getCoordinatesDistance(self, x_r, y_r):
+        if self.flag == 0:
+            if (x_r - self.point_1.x) ** 2 + (y_r - self.point_1.y) ** 2 < self.accuracy ** 2:
+                self.flag = 1
+
+        s = self.getClosest(x_r, y_r)
+
+        if self.flag == 0:
+            x_ref = self.xCoord(self.gamma, self.alpha, s)
+            y_ref = self.yCoord(self.gamma, self.alpha, s)
+            kappa = self.alpha * s
+            t_hat = [[self.gamma * cos(abs(self.alpha) * s ** 2 / 2)], [self.gamma * copysign(1, self.alpha) * sin(abs(self.alpha) * s ** 2 / 2)]]
+
+            return x_ref, y_ref, kappa, t_hat
+
+        else:
+            if (x_r - self.final.x) ** 2 + (y_r - self.final.y) ** 2 < self.accuracy ** 2:
+                self.is_end = True
+            x_ref_aux = self.xCoord(-self.gamma, self.alpha, 2 * self.s_end - s)
+            y_ref_aux = self.yCoord(self.gamma, self.alpha, 2 * self.s_end - s)
+            kappa = self.alpha * (2 * self.s_end - s)
+            t_hat_aux = [[self.gamma * cos(abs(self.alpha) / 2 * (2 * self.s_end - s) ** 2)], [-self.gamma * copysign(1, self.gamma) * sin(abs(self.alpha) / 2 * (2 * self.s_end - s) ** 2)]]
+            refs = matmult(matmult(self.T1, self.T2_inv), [[x_ref_aux], [y_ref_aux], [1]])
+            t_hat = matmult(matmult(self.R1, self.R2_inv), t_hat_aux)
+
+            return  refs[0], refs[1], kappa, t_hat
+
+    def getCoordinatesTime(self, t):
+        if t > self.t_end:
+            self.is_end = True
+
+        if t < self.s_end / self.speed:
+            x_ref = self.xCoord(self.gamma, self.alpha, self.speed * t)
+            y_ref = self.yCoord(self.gamma, self.alpha, self.speed * t)
+
+            x_ref_deriv = self.gamma * self.speed * cos((abs(self.alpha) * (self.speed * t) ** 2) / 2)
+            y_ref_deriv = self.gamma * self.speed * copysign(1, self.alpha) * sin((abs(self.alpha) * (self.speed * t) ** 2) / 2)
+
+            x_ref_d_deriv = - self.gamma * abs(self.alpha) * self.speed ** 3 * sin((abs(self.alpha) * (self.speed * t) ** 2) / 2)
+            y_ref_d_deriv = self.gamma * abs(self.alpha) * self.speed ** 3 * copysign(1, self.alpha) * cos((abs(self.alpha) * (self.speed * t) ** 2) / 2)
+
+            return TrajectoryPoint(x_ref, x_ref_deriv, x_ref_d_deriv, y_ref, y_ref_deriv, y_ref_d_deriv)
+
+        else:
+            x_ref_aux = self.xCoord(-self.gamma, -self.alpha, 2 * self.s_end - self.speed * t)
+            y_ref_aux = self.yCoord(self.gamma, -self.alpha, 2 * self.s_end - self.speed * t)
+
+            x_ref_aux_deriv = self.gamma * self.speed * cos((abs(self.alpha) * (2 * self.s_end - self.speed * t) ** 2) / 2)
+            y_ref_aux_deriv = -self.gamma * self.speed * copysign(1, self.alpha) * sin((abs(self.alpha) * (2 * self.s_end - self.speed * t) ** 2) / 2)
+
+            x_ref_aux_d_deriv = self.gamma * abs(self.alpha) * self.speed ** 2 * (2 * self.s_end - self.speed * t) * sin((abs(self.alpha) * (2 * self.s_end - self.speed * t) ** 2) / 2)
+            y_ref_aux_d_deriv = self.gamma * abs(self.alpha) * copysign(1, self.alpha) * self.speed ** 2 * (2 * self.s_end - self.speed * t) * cos((abs(self.alpha) * (2 * self.s_end - self.speed * t) ** 2)/ 2)
+
+            refs_d_deriv = matmult(matmult(self.R1, self.R2_inv), [[x_ref_aux_d_deriv], [y_ref_aux_d_deriv]])
+            refs_deriv = matmult(matmult(self.R1, self.R2_inv), [[x_ref_aux_deriv], [y_ref_aux_deriv]])
+            refs = matmult(matmult(self.T1, self.T2_inv), [[x_ref_aux], [y_ref_aux], [1]])
+
+            return TrajectoryPoint(refs[0][0], refs_deriv[0][0], refs_d_deriv[0][0], refs[1][0], refs_deriv[1][0], refs_d_deriv[1][0])

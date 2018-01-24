@@ -129,12 +129,13 @@ class LegoCar:
 
     def trajectory_move(self, trajectory):
         clock = Clock()
+        fh = open("test.txt", "w")
         while not trajectory.is_end:
             try:
                 t, dt = clock.getTandDT()
 
                 theta, omega = [-x for x in self.__sensor_gyro.rate_and_angle]  # !!! returns ANGLE AND RATE :)
-                x, y, dx, dy = self.__localization.getData(radians(theta), radians(self.__motor_rear.speed), dt)
+                x, y, dx, dy, v_r = self.__localization.getData(radians(theta), radians(self.__motor_rear.speed), dt)
                 self.__robot_state = [x, y, dx, dy, theta, omega]  # update state
 
                 point = trajectory.getCoordinatesTime(t)
@@ -144,7 +145,7 @@ class LegoCar:
                 u_v, u_phi = self.__velocity_controller.getControls(radians(self.__motor_rear.speed),
                                                                     radians(self.__motor_steer.position),
                                                                     radians(omega), dt)
-
+                fh.write("%f %f %f %f\n" % (x, y, point.x, point.y))
                 self.__motor_rear.run_direct(duty_cycle_sp=u_v)
                 self.__motor_steer.run_direct(duty_cycle_sp=u_phi)
 
@@ -153,12 +154,12 @@ class LegoCar:
             except KeyboardInterrupt:
                 break
         # off motors
+        fh.close()
         self.__motor_rear.duty_cycle_sp = 0
         self.__motor_steer.duty_cycle_sp = 0
         #raise SystemExit
 
     def path_move(self, trajectory, v_des = 0.2):
-        fh = open("test.txt", "w")
         clock = Clock()
         while not trajectory.is_end:
             try:
@@ -185,7 +186,6 @@ class LegoCar:
             except KeyboardInterrupt:
                 break
         # off motors
-        fh.close()
         self.__motor_rear.duty_cycle_sp = 0
         self.__motor_steer.duty_cycle_sp = 0
         #raise SystemExit
