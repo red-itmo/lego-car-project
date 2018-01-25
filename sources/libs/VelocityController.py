@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-from math import atan, pi, radians
+from math import atan, copysign
+from libs.Identificator import Identificator
 from libs.PID import PID
 
 R = 0.0432 / 2
 
 class VelocityController:
 
-    def __init__(self, robot, v_desired, omega_desired):
+    def __init__(self, robot, v_desired, omega_desired, adaptation=False):
+        self.adaptation = adaptation
+        self.identificator = Identificator()
         self.robot = robot
         self.v_desired = v_desired
         self.omega_desired = omega_desired
@@ -21,15 +24,21 @@ class VelocityController:
         error_v = self.v_desired - v_current
         u_v = self.pid_v.getControl(error_v, dt)
 
+        if self.adaptation == True:
+            theta = self.identificator.update(v_current, omega, phi)
+
+
         # steering control
         if v_current != 0:
-            phi_desired = atan(self.robot.L * self.omega_desired / v_current)
-            if phi_desired > self.robot.SOFT_MAX_PHI:
-                phi_desired = self.robot.SOFT_MAX_PHI
-            elif phi_desired < -self.robot.SOFT_MAX_PHI:
-                phi_desired = -self.robot.SOFT_MAX_PHI
+            if not self.adaptation:
+                phi_desired = atan(self.robot.L * self.omega_desired / v_current)
+            else:
+                phi_desired = 1 / theta[0][0] * (self.robot.L * self.omega_desired / v_current - theta[1][0])
+            if not -self.robot.SOFT_MAX_PHI < phi_desired < self.robot.SOFT_MAX_PHI:
+                phi_desired = self.robot.SOFT_MAX_PHI * copysign(1, phi_desired)
         else:
             phi_desired = 0.0
+
         error_phi = phi_desired - phi
         u_phi = self.pid_phi.getControl(error_phi, dt)
 
