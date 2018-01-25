@@ -43,22 +43,27 @@ class Robot:
 		points_of_robot = self.get4pointsofrobot(q)
 		Crash = False
 		turn_radius = math.sqrt(2)*self.height/2
-		#turn_radius = 0
+		#turn_radius = 5
 		if(primitive == "translate" and direction=="forward"):
 			#print(points_of_robot[3])
 			points_of_robot[3] =[points_of_robot[3][0]+turn_radius*math.cos(q.theta),points_of_robot[3][1]+turn_radius*math.sin(q.theta)] 
 			points_of_robot[2] =[points_of_robot[2][0]+turn_radius*math.cos(q.theta),points_of_robot[2][1]+turn_radius*math.sin(q.theta)]  
 		if(primitive == "translate" and direction=="backward"):
-			points_of_robot[0] =[points_of_robot[0][0]+turn_radius*math.cos(q.theta),points_of_robot[0][1]+turn_radius*math.sin(q.theta)] 
-			points_of_robot[1] =[points_of_robot[1][0]+turn_radius*math.cos(q.theta),points_of_robot[1][1]+turn_radius*math.sin(q.theta)] 
+			points_of_robot[0] =[points_of_robot[0][0]-turn_radius*math.cos(q.theta),points_of_robot[0][1]-turn_radius*math.sin(q.theta)] 
+			points_of_robot[1] =[points_of_robot[1][0]-turn_radius*math.cos(q.theta),points_of_robot[1][1]-turn_radius*math.sin(q.theta)] 
 
 
+		Crash = util.CrossesObstacles(points_of_robot[0],points_of_robot[-1],obstacles)
+		if(Crash):
+			return True
 		for i in range(len(points_of_robot)-1):
 			Crash = util.CrossesObstacles(points_of_robot[i],points_of_robot[i+1],obstacles)
-		Crash = util.CrossesObstacles(points_of_robot[0],points_of_robot[-1],obstacles)
+			if(Crash):
+				return True
+		
 		#print("RAnge: "+str(util.inRangeOfImg(points_of_robot,img)))
-		# if(not util.inRangeOfImg(points_of_robot,img)):
-		# 	return True
+		if(not util.inRangeOfImg(points_of_robot,img)):
+			return True
 		return Crash
 
 class Tree:
@@ -140,9 +145,8 @@ class Tree:
 	def TCIExtend(self,q,direction,obstacles):
 		q_begin = copy.deepcopy(q)
 		q_end = copy.deepcopy(q)
-		#print(self.robot.ifCrash(q_end,obstacles,self.img))
 		while not self.robot.ifCrash(q_end,obstacles,self.img,"translate",direction):
-			q_end.Translate(direction,0.1)
+			q_end.Translate(direction,1)
 		return self.TCI(q_begin,q_end)
 
 	def RCIExtend(self,q,angle,obstacles):
@@ -150,45 +154,54 @@ class Tree:
 		q_end = copy.deepcopy(q)
 		q_begin = copy.deepcopy(q)
 		rez_angle = 0
-		#print("\n")
-		#print("True angle: "+str(angle))
-		#print("theta: "+str(q_end.theta))
-		while rez_angle < abs(angle) and not collision:
-			rez_angle += math.copysign(1,angle)*0.01
-			q_end.Rotate(math.copysign(1,angle)*0.01)
+		while abs(rez_angle) < abs(angle) and not collision:
+			rez_angle += math.copysign(1,angle)*0.1
+			q_end.Rotate(math.copysign(1,angle)*0.1)
 			collision = self.robot.ifCrash(q_end,obstacles,self.img,"rotate","backward")
-			#print("		rez_angle: " + str(rez_angle))
-			#print("		theta: " + str(q_end.theta))
-			#print("		crash: " + str(collision))
-			#print("		x and y: " + str(q_end.x) +" "+ str(q_end.y))
+
 
 		if(collision):
-			q_end.theta -= math.copysign(1,angle)*0.01
+			q_end.theta -= math.copysign(1,angle)*0.1
 
 		return (self.RCI(q_begin,q_end),collision)
 
 	def NearestNeighbor(self,new_vertex):
-		min_dist = math.hypot(self.vertexes[0].x-new_vertex[0],self.vertexes[0].y-new_vertex[1]) 
-		n_min = 0
 
-		for n in range(len(self.vertexes)):
-			candidate = math.hypot(self.vertexes[n].x-new_vertex[0],self.vertexes[n].x-new_vertex[1]) 
-			if candidate < min_dist:
-				min_dist = candidate
-				n_min = n
+		min_dist = None
+		min_q = None
+		orient = None
 		
-		return n_min
-
-	def draw_all(self,obstacles):
-		img = self.img
-		#print(self.vertexes)
-		for vertex in self.vertexes:
-			#print(vertex.x)
-			cv2.circle(img,(math.ceil(vertex.x),math.ceil(vertex.y)),2,(0,0,255))
-
 		for edge in self.edges:
-			#print("1 "+str(edge[0]))
-			#print("2 "+str(edge[1].q_end))
+			if(edge[0].x == edge[1].q_end.x and edge[0].y == edge[1].q_end.y):
+				candidate_q = [edge[1].q_end.x,edge[1].q_end.y]
+
+			else:
+				candidate_q = util.ClosestPoint(edge[0],edge[1].q_end,self.q(new_vertex,0))
+			candidate_dist = math.hypot(new_vertex[0] - candidate_q[0],new_vertex[1]-candidate_q[1])
+			if min_dist == None or candidate_dist < min_dist:
+				min_dist = candidate_dist
+				min_q = candidate_q 
+				orient = edge[0].theta 
+				
+		return self.q(min_q,orient)
+
+	def draw_all(self,obstacles,robot,color):
+
+		def draw_robot(img,q,robot,color):
+			p_for_line = robot.get4pointsofrobot(q)
+			for i in range(len(p_for_line)-1):
+				cv2.line(img,(int(p_for_line[i][0]),int(p_for_line[i][1])),(int(p_for_line[i+1][0]),int(p_for_line[i+1][1])),color)				
+			cv2.line(img,(int(p_for_line[0][0]),int(p_for_line[0][1])),(int(p_for_line[-1][0]),int(p_for_line[-1][1])),color)
+			return img
+		
+		img = self.img
+		n = 0
+		for vertex in self.vertexes:
+
+			cv2.circle(img,(math.ceil(vertex.x),math.ceil(vertex.y)),2,(0,0,255))
+			if(n%50==0 or True):
+				draw_robot(img,vertex,robot,color)
+		for edge in self.edges:
 			cv2.line(img,(math.ceil(edge[0].x),math.ceil(edge[0].y)),(math.ceil(edge[1].q_end.x),math.ceil(edge[1].q_end.y)),(255,0,0))
 		for obstacle in obstacles:
 			for i in range(len(obstacle)-1):
@@ -199,17 +212,14 @@ class RTR_PLANNER:
 
 	def __init__(self,Robot,img):
 		self.win_name = "Win1"
-		#cv2.namedWindow(self.win_name)
-		#cv2.setMouseCallback(self.win_name,self.onMouse)
 		self.Tree = Tree(Robot,img)
 		self.dims = [img.shape[:2][1],img.shape[:2][0]]
 
 	def construct(self,q_init,q_end,obstacles,max_expand_dist = 50,n_of_iterations = 50):
-		self.Tree.Init(q_init,obstacles)
-		
+		self.Tree.Init(q_init,obstacles)		
 		for k in range(n_of_iterations):
 			P_g = self.RandomPos(self.dims)
-			q_near = self.Tree.vertexes[self.Tree.NearestNeighbor(P_g)]
+			q_near = self.Tree.NearestNeighbor(P_g)
 			turndirection = self.MinTurndirection(q_near,P_g)
 			collision = self.Tree.Extend(q_near,turndirection,obstacles)
 			if collision:
@@ -217,58 +227,45 @@ class RTR_PLANNER:
 
 		return self.Tree
 
+
 	def MinTurndirection(self,q_nearest,random_point):
-		return min(abs((-math.copysign(1,q_nearest.theta)* (math.pi*2 - abs(q_nearest.theta))) + math.atan2(random_point[1],random_point[0])),
-					abs(q_nearest.theta - math.atan2(random_point[1],random_point[0])))
+		x = random_point[0] - q_nearest.x
+		y = random_point[1] - q_nearest.y
+
+		dx = math.cos(q_nearest.theta)
+		dy = math.sin(q_nearest.theta)
+		angle = math.atan2(x*dy - y*dx,x*dx+y*dy)
+
+		return angle
 
 	def RandomPos(self,dims):
 		return [random.randint(0,dims[0]),random.randint(0,dims[1])]
 
 
 
-# def main():
-# 	img = cv2.imread("floor_without_p.png",1)
-# 	q_root = Tree.q([150,150],math.pi/2)
-# 	robot = Robot([q_root.x,q_root.y],50,25)
-# 	p_for_line = robot.get4pointsofrobot(q_root)
-# 	cv2.circle(img,(q_root.x,q_root.y),2,(255,0,0))
-# 	for i in range(len(p_for_line)-1):
-# 		cv2.line(img,(int(p_for_line[i][0]),int(p_for_line[i][1])),(int(p_for_line[i+1][0]),int(p_for_line[i+1][1])),(0,255,0))
-# 		#cv2.putText(img,str(i),(int(p_for_line[i][0]),int(p_for_line[i][1])),cv2.FONT_HERSHEY_SIMPLEX,1,(255,0,0),2,cv2.LINE_AA)
-# 		cv2.imshow("WIN",img)
-# 		cv2.waitKey(0)
-		
-# 	cv2.line(img,(int(p_for_line[0][0]),int(p_for_line[0][1])),(int(p_for_line[-1][0]),int(p_for_line[-1][1])),(0,255,0))
-	
-# 	cv2.namedWindow("WIN")
-# 	cv2.imshow("WIN",img)
-# 	cv2.waitKey(0)
-
 def main():
 	img = cv2.imread("floor_without_p.png",1)
 	#print(img.shape[:2][1])
 	q_root = Tree.q([150,50],0)
-	q_end = Tree.q([300,300],math.pi/2)
-	robot = Robot([q_root.x,q_root.y],50,25)
+	q_end = Tree.q([500,400],0)
+	robot = Robot([q_root.x,q_root.y],75,40)
 	rt_tree = RTR_PLANNER(robot,img)
-	wall3 = util.build_wall((0,0),(img.shape[:2][1],img.shape[:2][0]),200)
-	wall4 = util.build_wall((img.shape[:2][1],img.shape[:2][0]),(img.shape[:2][0],0),200)
-	wall1 = util.build_wall((img.shape[:2][0],0),(0,img.shape[:2][1]),200)
-	wall2 = util.build_wall((0,img.shape[:2][1]),(0,0),200)
-	obstacles = [wall1,wall2,wall3,wall4]
-	tree = rt_tree.construct(q_root,q_end,obstacles,50,50)
-	#for vertex in tree.vertexes:
-		#print(vertex)
-	img1 = tree.draw_all(obstacles)
-	# p_for_line = robot.get4pointsofrobot(vertex)
-	# cv2.circle(img,(int(vertex.x),int(vertex.y)),2,(255,0,0))
-	# for i in range(len(p_for_line)-1):
-	# 	cv2.line(img,(int(p_for_line[i][0]),int(p_for_line[i][1])),(int(p_for_line[i+1][0]),int(p_for_line[i+1][1])),(0,255,0))
-	# 	#cv2.putText(img,str(i),(int(p_for_line[i][0]),int(p_for_line[i][1])),cv2.FONT_HERSHEY_SIMPLEX,1,(255,0,0),2,cv2.LINE_AA)
-	# 	#cv2.imshow("WIN",img)
-	# 	#cv2.waitKey(0)
-		
-	# cv2.line(img,(int(p_for_line[0][0]),int(p_for_line[0][1])),(int(p_for_line[-1][0]),int(p_for_line[-1][1])),(0,255,0))
+	#wall3 = util.build_wall((0,0),(img.shape[:2][1],0),200)
+	#wall4 = util.build_wall((img.shape[:2][1]-2,0),(img.shape[:2][1]-2,img.shape[:2][0]),200)
+	#wall1 = util.build_wall((img.shape[:2][1],img.shape[:2][0]-2),(0,img.shape[:2][0]-2),200)
+	#wall2 = util.build_wall((0,img.shape[:2][0]),(0,0),200)
+	wall6 = util.build_wall([0,100],[img.shape[:2][1]-300,100],200)
+	wall5 = util.build_wall([img.shape[:2][1],200],[300,200],200)
+	wall7 = util.build_wall([0,300],[img.shape[:2][1]-300,300],200)
+	#obstacles = [wall1,wall2,wall3,wall4,wall5,wall6,wall7]
+	obstacles = [wall6,wall5,wall7]
+	tree1 = rt_tree.construct(q_root,q_end,obstacles,50,100)
+	rt_tree2 = RTR_PLANNER(robot,img)
+	tree2 = rt_tree2.construct(q_end,q_root,obstacles,50,100)
+
+	img1 = tree1.draw_all(obstacles,robot,(0,255,0))
+	img1 = tree2.draw_all(obstacles,robot,(0,0,255))
+
 	win_name = "Win1"
 	cv2.namedWindow(win_name)
 	cv2.imshow(win_name,img1)

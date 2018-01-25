@@ -1,3 +1,4 @@
+import math
 def isInGoalCircle(point,goal):
 	d = math.sqrt(math.pow((point.position[0]-goal[0]),2)+math.pow((point.position[1]-goal[1]),2))
 	return d<20
@@ -59,7 +60,7 @@ def LiesBeneathObstacles(p,obstacles):
 def inRangeOfImg(points,img):
 	width,height = img.shape[:2]
 	for point in points:
-		if(point[1]>=width or point[0]>=height or point[0]<=0 or point[1]<=0):
+		if(point[1]>=width-5 or point[0]>=height-5 or point[1]<=10 or point[0]<=10):
 			return False
 	return True
 
@@ -69,3 +70,18 @@ def build_wall(begin_coord,end_coord,n_of_points):
 
 	return [[int(begin_coord[0]+i*x_spacing),int(begin_coord[1]+i*y_spacing)]
 				for i in range(1,n_of_points+1)]
+
+def ClosestPoint(A,B,P):
+	a_to_p = [P.x - A.x,P.y-A.y]
+	a_to_b = [B.x - A.x,B.y-A.y]
+
+	atb2 = math.pow(a_to_b[0],2)+math.pow(a_to_b[1],2)
+
+	atp_dot_atb = a_to_p[0]*a_to_b[0] + a_to_p[1]*a_to_b[1]
+
+	t = sigmoid(atp_dot_atb/atb2)
+
+	return [A.x+a_to_b[0]*t,A.y+a_to_b[1]*1]
+
+def sigmoid(t):
+	return 1/(1+math.exp(-t))
