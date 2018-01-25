@@ -4,7 +4,7 @@ import numpy as np
 import cv2
 import utility as util
 import copy 
-random.seed(1)
+random.seed()
 class Robot:
 
 	def __init__(self,p1,width,height):
@@ -74,6 +74,8 @@ class Tree:
 			self.x = position[0]
 			self.y = position[1]
 			self.theta = theta
+			self.parent = 1
+			self.child = []
 
 		def Translate(self,direction,cost):
 			#print("lol")
@@ -94,10 +96,10 @@ class Tree:
 		def __str__(self):
 			return ("|" +str(self.x) + " " + str(self.y) + " " + str(self.theta) + "|" ) 
 
-		def __eq__(self, other):
-			if(self.x == other.x and self.y == other.y ):
-				return True
-			return False
+		# def __eq__(self, other):
+		# 	if(self.x == other.x and self.y == other.y ):
+		# 		return True
+		# 	return False
 
 	class TCI:
 		
@@ -126,22 +128,33 @@ class Tree:
 
 	def Init(self,q,obstacles):
 		self.AddVertex(q)
+
 		print(q)
 		TCI = self.TCIExtend(q,"forward",obstacles)
+		q.child.append(TCI.q_end)
+		TCI.q_end.parent = q
 		self.AddVertex(TCI.q_end)
 		self.AddEdge(q,TCI)
 		TCI = self.TCIExtend(q,"backward",obstacles)
+		q.child.append(TCI.q_end)
+		TCI.q_end.parent = q
 		self.AddVertex(TCI.q_end)
 		self.AddEdge(q,TCI)
 
 	def Extend(self,q,turndirection,obstacles):
 		RCI,collision = self.RCIExtend(q,turndirection,obstacles)
+		q.child.append(RCI.q_end)
+		RCI.q_end.parent = q
 		self.AddVertex(RCI.q_end)
 		self.AddEdge(q,RCI)
 		TCI = self.TCIExtend(RCI.q_end,"forward",obstacles)
+		q.child.append(TCI.q_end)
+		TCI.q_end.parent = q
 		self.AddVertex(TCI.q_end)
 		self.AddEdge(RCI.q_end,TCI)
 		TCI = self.TCIExtend(RCI.q_end,"backward",obstacles)
+		q.child.append(TCI.q_end)
+		TCI.q_end.parent = q
 		self.AddVertex(TCI.q_end)
 		self.AddEdge(RCI.q_end,TCI)
 
@@ -175,7 +188,8 @@ class Tree:
 		min_dist = None
 		min_q = None
 		orient = None
-		
+		true_edge = None
+
 		for edge in self.edges:
 			if(edge[0].x == edge[1].q_end.x and edge[0].y == edge[1].q_end.y):
 				candidate_q = [edge[1].q_end.x,edge[1].q_end.y]
@@ -184,20 +198,17 @@ class Tree:
 				candidate_q = util.ClosestPoint(edge[0],edge[1].q_end,self.q(new_vertex,0))
 			candidate_dist = math.hypot(new_vertex[0] - candidate_q[0],new_vertex[1]-candidate_q[1])
 			if min_dist == None or candidate_dist < min_dist:
+				true_edge = edge
 				min_dist = candidate_dist
 				min_q = candidate_q 
 				orient = edge[0].theta 
-				
-		return self.q(min_q,orient)
+		Q = self.q(min_q,orient)
+		Q.parent = true_edge[0]
+		return Q
 
 	def draw_all(self,obstacles,color):
 
-		def draw_robot(img,q,color):
-			p_for_line = self.robot.get4pointsofrobot(q)
-			for i in range(len(p_for_line)-1):
-				cv2.line(img,(int(p_for_line[i][0]),int(p_for_line[i][1])),(int(p_for_line[i+1][0]),int(p_for_line[i+1][1])),color)				
-			cv2.line(img,(int(p_for_line[0][0]),int(p_for_line[0][1])),(int(p_for_line[-1][0]),int(p_for_line[-1][1])),color)
-			return img
+
 		
 		img = self.img
 		n = 0
@@ -205,13 +216,34 @@ class Tree:
 
 			cv2.circle(img,(math.ceil(vertex.x),math.ceil(vertex.y)),2,(0,0,255))
 			if(n%50==0 or True):
-				draw_robot(img,vertex,color)
+				self.draw_robot(img,vertex,color)
 		for edge in self.edges:
 			cv2.line(img,(math.ceil(edge[0].x),math.ceil(edge[0].y)),(math.ceil(edge[1].q_end.x),math.ceil(edge[1].q_end.y)),(255,0,0))
 		for obstacle in obstacles:
 			for i in range(len(obstacle)-1):
 				cv2.line(img,(obstacle[i][0],obstacle[i][1]),(obstacle[i+1][0],obstacle[i+1][1]),(0,255,0))
 		
+		win_name = "Win1"
+		cv2.namedWindow(win_name)
+		cv2.imshow(win_name,img)
+		cv2.waitKey(0)
+
+	def draw_robot(self,img,q,color):
+		p_for_line = self.robot.get4pointsofrobot(q)
+		cv2.circle(img,(int(q.x),int(q.y)),5,(255,0,0),-1)	
+		for i in range(len(p_for_line)-1):
+			cv2.line(img,(int(p_for_line[i][0]),int(p_for_line[i][1])),(int(p_for_line[i+1][0]),int(p_for_line[i+1][1])),color)				
+		cv2.line(img,(int(p_for_line[0][0]),int(p_for_line[0][1])),(int(p_for_line[-1][0]),int(p_for_line[-1][1])),color)
+		return img
+
+	def draw_path(self,obstacles,path):
+		img = self.img
+		for obstacle in obstacles:
+			for i in range(len(obstacle)-1):
+				cv2.line(img,(obstacle[i][0],obstacle[i][1]),(obstacle[i+1][0],obstacle[i+1][1]),(0,255,0))
+		for n in range(len(path)-1):
+			cv2.line(img,(math.ceil(path[n].x),math.ceil(path[n].y)),(math.ceil(path[n+1].x),math.ceil(path[n+1].y)),(255,0,0))
+			self.draw_robot(img,path[n+1],(0,0,255))
 		win_name = "Win1"
 		cv2.namedWindow(win_name)
 		cv2.imshow(win_name,img)
@@ -244,7 +276,11 @@ class RTR_PLANNER:
 			n,goal_achieved = self.checkGoal(self.Tree_root.edges[-1],self.Tree_end.edges)
 		
 			if(goal_achieved):
-				return self.getpath(q_init,self.Tree_root.edges[-1],q_end,self.Tree_end.edges[n])
+
+				path= self.getpath(q_init,self.Tree_root.edges[-1],q_end,self.Tree_end.edges[n])
+				self.Tree_root.draw_path(obstacles,path)
+				print(k)
+				return path
 		self.Tree_root.draw_all(obstacles,(255,0,0))
 		self.Tree_end.draw_all(obstacles,(255,255,255))
 
@@ -261,23 +297,23 @@ class RTR_PLANNER:
 
 	def getpath(self,q_init,edge_init,q_end,edge_end):
 		path1 = []
-		edge_step = edge_init[1]
-		while(edge_step.q_begin!=q_init):
+		q_step = edge_init[0]
+		while(q_step is not None):
 			
-			path1.append(edge_step)
-			edge_step = self.find(edge_step.q_begin,self.Tree_root)
-			print(path1[-1].q_end)
-			print(path1[-1].q_begin)
+			path1.append(q_step)
+			q_step = q_step.parent
+			
+		#print(path1)
 		path1 = path1[::-1]
 		path2 = []
-		edge_step = edge_end[1]
-		while(edge_step.q_begin!=q_end):
-			path2.append(edge_step)
-			edge_step = self.find(edge_step.q_begin,self.Tree_end)
-		path2 = path2[::-1]
+		q_step = edge_end[0]
+		while(q_step is not None):
+			path2.append(q_step)
+			q_step = q_step.parent
+		#path2 = path2[::-1]
 		intersection = util.line_intersection([[edge_init[0].x,edge_init[0].y],[edge_init[1].q_end.x,edge_init[1].q_end.y]],
 												[[edge_end[0].x,edge_end[0].y],[edge_end[1].q_end.x,edge_end[1].q_end.y]])
-		path1.append([path1[-1].q_end,self.Tree.q(intersection,path1[-1].q_end.theta)])
+		path1.append(Tree.q(intersection,path1[-1].theta))
 		path1.extend(path2)
 
 		return path1
@@ -309,7 +345,9 @@ def main():
 	img = cv2.imread("floor_without_p.png",1)
 	#print(img.shape[:2][1])
 	q_root = Tree.q([150,50],0)
+	q_root.parent = None
 	q_end = Tree.q([500,400],0)
+	q_end.parent = None
 	robot = Robot([q_root.x,q_root.y],75,40)
 	rt_tree = RTR_PLANNER(robot,img)
 	#wall3 = util.build_wall((0,0),(img.shape[:2][1],0),200)
@@ -323,7 +361,7 @@ def main():
 	obstacles = [wall6,wall5,wall7]
 	path1 = rt_tree.construct(q_root,q_end,obstacles,50,200)
 
-	print(path1)
+	#print(path1)
 
 	# win_name = "Win1"
 	# cv2.namedWindow(win_name)
