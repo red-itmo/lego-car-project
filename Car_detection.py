@@ -31,7 +31,7 @@ class Car_detection:
 		# resize the frame, blur it, and convert it to the HSV
 		# color space
 
-		frame = imutils.resize(frame, width=600)
+		#frame = imutils.resize(frame, width=600)
 		blurred = cv2.GaussianBlur(frame, (15, 15), 0)
 		hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
@@ -53,9 +53,9 @@ class Car_detection:
 		mask_yellow = cv2.inRange(hsv, self.yellowLower, self.yellowUpper)
 		mask_yellow = cv2.erode(mask_yellow, None, iterations=2)
 		mask_yellow = cv2.dilate(mask_yellow, None, iterations=2)
-	 	
-	 	yellow_cntr = None
-	 	yellow_cntr = cv2.findContours(mask_yellow.copy(), cv2.RETR_EXTERNAL,
+		
+		yellow_cntr = None
+		yellow_cntr = cv2.findContours(mask_yellow.copy(), cv2.RETR_EXTERNAL,
 			cv2.CHAIN_APPROX_SIMPLE)[-2]
 
 		# only proceed if two contours were found

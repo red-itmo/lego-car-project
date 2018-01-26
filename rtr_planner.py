@@ -3,8 +3,10 @@ import math
 import numpy as np
 import cv2
 import utility as util
-import copy 
+import copy
+import Car_detection as detect 
 random.seed()
+
 class Robot:
 
 	def __init__(self,p1,width,height):
@@ -226,21 +228,19 @@ class Tree:
 		cv2.line(img,(int(p_for_line[0][0]),int(p_for_line[0][1])),(int(p_for_line[-1][0]),int(p_for_line[-1][1])),color)
 		return img
 
-	def draw_path(self,obstacles,path):
-		img = self.img
+	def draw_path(self,obstacles,path,img):
+		#img = self.img
 		for obstacle in obstacles:
 			for i in range(len(obstacle)-1):
 				cv2.line(img,(obstacle[i][0],obstacle[i][1]),(obstacle[i+1][0],obstacle[i+1][1]),(0,255,0))
 		for n in range(len(path)-1):
 			cv2.line(img,(math.ceil(path[n].x),math.ceil(path[n].y)),(math.ceil(path[n+1].x),math.ceil(path[n+1].y)),(255,0,0))
-			if(path[n+1].theta == path[n].theta):
-				self.draw_robot(img,path[n],(0,0,255))
+			font = cv2.FONT_HERSHEY_SIMPLEX
+			#cv2.putText(img,str(n),(int(path[n].x),int(path[n].y)), font, 1,(255,255,255),2,cv2.LINE_AA)
+			#if(path[n+1].theta == path[n].theta):
+			self.draw_robot(img,path[n],(0,0,255))
 		self.draw_robot(img,path[-1],(0,0,255))
-		win_name = "Win1"
-		cv2.namedWindow(win_name)
-		cv2.imshow(win_name,img)
-		cv2.imwrite('rtr_planner_through_narrow_corridor.png', img)
-		cv2.waitKey(0)
+		return img
 
 class RTR_PLANNER:
 
@@ -270,12 +270,18 @@ class RTR_PLANNER:
 		
 			if(goal_achieved):
 
-				path= self.getpath(q_init,self.Tree_root.edges[-1],q_end,self.Tree_end.edges[n])
-				self.Tree_root.draw_path(obstacles,path)
-				print(k)
+				path = self.getpath(q_init,self.Tree_root.edges[-1],q_end,self.Tree_end.edges[n])
+				#self.Tree_root.draw_path(obstacles,path)
+				path = self.correct_angles_in_path(path)
+				# img = self.Tree_root.draw_path(obstacles,path,self.Tree_root.img)
+				# win_name = "Win1"
+				# cv2.namedWindow(win_name)
+				# cv2.imshow(win_name,img)
+				# cv2.waitKey(0)
+				print("Number of iterations: " + str(k))
 				return path
-		self.Tree_root.draw_all(obstacles,(255,0,0))
-		self.Tree_end.draw_all(obstacles,(255,255,255))
+		#self.Tree_root.draw_all(obstacles,(255,0,0))
+		#self.Tree_end.draw_all(obstacles,(255,255,255))
 
 		return None
 
@@ -313,6 +319,7 @@ class RTR_PLANNER:
 		intersection = util.line_intersection([[edge_init[0].x,edge_init[0].y],[edge_init[1].q_end.x,edge_init[1].q_end.y]],
 												[[edge_end[0].x,edge_end[0].y],[edge_end[1].q_end.x,edge_end[1].q_end.y]])
 		path1.append(Tree.q(intersection,path1[-1].theta))
+		#path2 = path2[::-1]
 		path1.extend(path2)
 
 		return path1
@@ -325,6 +332,18 @@ class RTR_PLANNER:
 
 				return edge[1]
 
+	def correct_angles_in_path(self,path):
+		correct_path = []
+		for n in range(len(path)-1):
+			if(n==0):
+				correct_path.append(path[0])
+				continue
+			#if(path[n+1].theta == path[n].theta):
+			correct_path.append(Tree.q([path[n].x,path[n].y],path[n].theta + self.MinTurndirection(path[n],[path[n+1].x,path[n+1].y])))
+		correct_path.append(Tree.q([path[-1].x,path[-1].y],path[-1].theta))
+		#print(correct_path)
+		return correct_path
+
 	def MinTurndirection(self,q_nearest,random_point):
 		x = random_point[0] - q_nearest.x
 		y = random_point[1] - q_nearest.y
@@ -333,33 +352,36 @@ class RTR_PLANNER:
 		dy = math.sin(q_nearest.theta)
 		angle = math.atan2(x*dy - y*dx,x*dx+y*dy)
 
-		return angle
+		return -angle
 
 	def RandomPos(self,dims):
 		return [random.randint(0,dims[0]),random.randint(0,dims[1])]
 
 
 
-def main():
-	img = cv2.imread("floor_without_p.png",1)
 
-	q_root = Tree.q([150,50],0)
-	q_root.parent = None
-	q_end = Tree.q([500,400],0)
-	q_end.parent = None
-	robot = Robot([q_root.x,q_root.y],75,40)
-	rt_tree = RTR_PLANNER(robot,img)
+# def main():
+# 	img = cv2.imread("35.png",1)
+# 	robot_pose=  detect.Car_detection().find_car(img)
+# 	print(robot_pose)
+# 	q_root = Tree.q(robot_pose[0],robot_pose[1])
+# 	q_root.parent = None
+# 	q_end = Tree.q([500,400],0)
+# 	q_end.parent = None
+# 	robot = Robot([q_root.x,q_root.y],80,60)
+# 	rt_tree = RTR_PLANNER(robot,img)
 
-	#wall6 = util.build_wall([0,100],[img.shape[:2][1]-300,100],200)
-	#wall5 = util.build_wall([img.shape[:2][1],200],[300,200],200)
-	#wall7 = util.build_wall([0,300],[img.shape[:2][1]-300,300],200)
-	#wall8 = util.build_wall([img.shape[:2][1]-100,350],[img.shape[:2][1]-200,450],200)
+# 	# wall6 = util.build_wall([0,100],[img.shape[:2][1]-300,100],200)
+# 	# wall5 = util.build_wall([img.shape[:2][1],200],[300,200],200)
+# 	# wall7 = util.build_wall([0,300],[img.shape[:2][1]-300,300],200)
+# 	#wall8 = util.build_wall([img.shape[:2][1]-100,350],[img.shape[:2][1]-200,450],200)
 
-	#obstacles = [wall6,wall5,wall7,wall8]
-	obstacles = []
-	path1 = rt_tree.construct(q_root,q_end,obstacles,50,200)
+# 	#obstacles = [wall6,wall5,wall7]
+# 	obstacles = []
+# 	path1 = rt_tree.construct(q_root,q_end,obstacles,50,200)
+# 	print(path1)
 
 
-if __name__ == '__main__':
-	main()
+# if __name__ == '__main__':
+# 	main()
 

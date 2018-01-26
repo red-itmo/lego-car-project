@@ -89,16 +89,37 @@ def build_wall(begin_coord,end_coord,n_of_points):
 				for i in range(1,n_of_points+1)]
 
 def ClosestPoint(A,B,P):
+
+	def find_perpendicular(A,B,P):
+		a_to_p = [P.x - A.x,P.y-A.y]
+		a_to_b = [B.x - A.x,B.y-A.y]
+
+		atb2 = math.pow(a_to_b[0],2)+math.pow(a_to_b[1],2)
+
+		atp_dot_atb = a_to_p[0]*a_to_b[0] + a_to_p[1]*a_to_b[1]
+
+		t = sigmoid(atp_dot_atb/atb2)
+
+		return [A.x+a_to_b[0]*t,A.y+a_to_b[1]*t]
+	
 	a_to_p = [P.x - A.x,P.y-A.y]
-	a_to_b = [B.x - A.x,B.y-A.y]
+	a_to_b = [B.x - A.x,B.y-A.y]	
+	b_to_a = [A.x-B.x,A.y-B.x]
+	b_to_p = [P.x-B.x,P.y-B.y]
 
-	atb2 = math.pow(a_to_b[0],2)+math.pow(a_to_b[1],2)
+	atb_dot_atp = dot_product(a_to_b,a_to_p)
+	bta_dot_btp = dot_product(b_to_a,b_to_p)
 
-	atp_dot_atb = a_to_p[0]*a_to_b[0] + a_to_p[1]*a_to_b[1]
+	if(atb_dot_atp > 0):
+		if(bta_dot_btp > 0):
+			return find_perpendicular(A,B,P)
+		if(bta_dot_btp < 0):
+			return [B.x,B.y]
+	else:
+		return [A.x,A.y]
 
-	t = sigmoid(atp_dot_atb/atb2)
-
-	return [A.x+a_to_b[0]*t,A.y+a_to_b[1]*1]
+def dot_product(vector1,vector2):
+	return vector1[0]*vector2[0]+vector1[1]*vector2[1]
 
 def sigmoid(t):
 	return 1/(1+math.exp(-t))
