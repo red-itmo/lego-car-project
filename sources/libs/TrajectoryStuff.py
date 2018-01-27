@@ -1,9 +1,9 @@
-from math import sin, cos, atan2, sqrt, pi, copysign
-from libs.Auxilary import AngleFinder, matmult
+from math import sin, cos, atan2, sqrt, pi, copysign, radians
+from Auxilary import AngleFinder, matmult
 
 
 # for debugging purposes (may be deleted later)
-PATH = "/home/user/Desktop/"
+PATH = "/Users/osouzdalev/Desktop/RED/lego-car-movement-control/sources/libs/"
 
 
 class Point:
@@ -24,6 +24,13 @@ class TrajectoryPoint:
 
     def getPoint(self):
         return self.x, self.dx, self.ddx, self.y, self.dy, self.ddy
+
+class Pose:
+
+    def __init__(self, x, y, angle):
+        self.point = Point(x, y)
+        self.angle = angle
+
 
 
 class TrajectoryLine:
@@ -77,7 +84,7 @@ class StraightLine(TrajectoryLine):
 
 class CircleLine(TrajectoryLine):
 
-    def __init__(self, point_c, point_0, point_1, direction, v=0, accuracy=0):
+    def __init__(self, point_c, point_0, point_1, direction, v=0.0, accuracy=0):
         super(CircleLine, self).__init__()
         self.angle_finder = AngleFinder()
         self.point_c, self.point_1 = point_c, point_1
@@ -132,9 +139,9 @@ class CircleLine(TrajectoryLine):
             return TrajectoryPoint(x_r, vx_r, ax_r, y_r, vy_r, ay_r)
 
 
-class ClothoidLine(TrajectoryLine):
-    def __init__(self, point_1, v=0, accuracy=0):
-        super(ClothoidLine, self).__init__()
+class AcademicClothoidLine(TrajectoryLine):
+    def __init__(self, point_1, v=0.0, accuracy=0):
+        super(AcademicClothoidLine, self).__init__()
         self.point_1 = point_1
         self.gamma = 1 if self.point_1.x > 0 else -1
         self.beta = 1 if self.point_1.y > 0 else -1
@@ -183,7 +190,7 @@ class ClothoidLine(TrajectoryLine):
         # finding s_0
         k = self.point_1.y / self.point_1.x
         e = copysign(1, self.beta)
-        s_0 = 0
+        s_0 = x = 0
         while copysign(1, self.beta) * e > 0:
             s_0 += 0.1
             x = self.xCoord(self.gamma, self.alpha_sign, s_0)
@@ -281,15 +288,172 @@ class ClothoidLine(TrajectoryLine):
             return TrajectoryPoint(refs[0][0], refs_deriv[0][0], refs_d_deriv[0][0], refs[1][0], refs_deriv[1][0], refs_d_deriv[1][0])
 
 
+class ClothoidLine(TrajectoryLine):
+    def __init__(self, pose_0, gamma, alpha, s_end,  v=0.0, accuracy=0, type=None):
+        super(ClothoidLine, self).__init__()
+        self.gamma, self.alpha, self.s_end, self.type = gamma, alpha, s_end, type
+        self.delta = (self.alpha * self.s_end ** 2) / 2
+        print(pose_0.angle)
+        self.R1 = [[cos(pose_0.angle), -sin(pose_0.angle)], [sin(pose_0.angle), cos(pose_0.angle)]]
+
+        self.T1 = [[cos(pose_0.angle), -sin(pose_0.angle), pose_0.point.x],
+                   [sin(pose_0.angle), cos(pose_0.angle), pose_0.point.y],
+                   [0, 0, 1]]
+
+        if type == "out":
+            self.start_point = Point(self.xCoord(-self.gamma, self.alpha, self.s_end), self.yCoord(-self.gamma, self.alpha, self.s_end))
+            print(self.start_point.x, self.start_point.y)
+            self.delta += pi
+            self.R2_inv = [[cos(self.delta), -sin(self.delta)], [sin(self.delta), cos(self.delta)]]
+            self.T2_inv = [
+                [cos(self.delta), sin(self.delta), -self.start_point.y * sin(self.delta) - self.start_point.x * cos(self.delta)],
+                [-sin(self.delta), cos(self.delta), -self.start_point.y * cos(self.delta) + self.start_point.x * sin(self.delta)],
+                [0, 0, 1]]
+
+        self.speed = v
+        if self.speed != 0:
+            self.t_end = self.s_end / self.speed
+        else:
+            self.accuracy = accuracy
+
+        # for debugging purposes (may be deleted later)
+        self.f1 = open(PATH + "first.txt", 'w')
+        self.f2 = open(PATH + "second.txt", 'w')
+
+    def __delete__(self):
+        self.f1.close()
+        self.f2.close()
+
+    def f(self, x):
+        return (1 + 0.926 * x) / (2 + 1.792 * x + 3.104 * x ** 2)
+
+    def g(self, x):
+        return 1 / (2 + 4.412 * x + 3.492 * x ** 2 + 6.67 * x ** 3)
+
+    def Cf(self, x):
+        return 1 / 2 + self.f(x) * sin(pi / 2 * x ** 2) - self.g(x) * cos(pi / 2 * x ** 2)
+
+    def Sf(self, x):
+        return 1 / 2 - self.f(x) * cos(pi / 2 * x ** 2) - self.g(x) * sin(pi / 2 * x ** 2)
+
+    def getClosest(self, x_r, y_r):
+        pass
+
+    def xCoord(self, gamma, alpha, s):
+        return gamma * sqrt(pi / abs(alpha)) * self.Cf(sqrt(abs(alpha) / pi) * s)
+
+    def yCoord(self, gamma, alpha, s):
+        return gamma * copysign(1, alpha) * sqrt(pi / abs(alpha)) * self.Sf(sqrt(abs(alpha) / pi) * s)
+
+    # def getCoordinatesDistance(self, x_r, y_r):
+    #     if self.flag == 0:
+    #         if (x_r - self.point_1.x) ** 2 + (y_r - self.point_1.y) ** 2 < self.accuracy ** 2:
+    #             self.flag = 1
+    #
+    #     s = self.getClosest(x_r, y_r)
+    #
+    #     if self.flag == 0:
+    #         x_ref = self.xCoord(self.gamma, self.alpha, s)
+    #         y_ref = self.yCoord(self.gamma, self.alpha, s)
+    #         kappa = self.alpha * s
+    #         t_hat = [[self.gamma * cos(abs(self.alpha) * s ** 2 / 2)],
+    #                  [self.gamma * copysign(1, self.alpha) * sin(abs(self.alpha) * s ** 2 / 2)]]
+    #
+    #         return x_ref, y_ref, kappa, t_hat
+    #
+    #     else:
+    #         if (x_r - self.final.x) ** 2 + (y_r - self.final.y) ** 2 < self.accuracy ** 2:
+    #             self.is_end = True
+    #         x_ref_aux = self.xCoord(-self.gamma, self.alpha, 2 * self.s_end - s)
+    #         y_ref_aux = self.yCoord(self.gamma, self.alpha, 2 * self.s_end - s)
+    #         kappa = self.alpha * (2 * self.s_end - s)
+    #         t_hat_aux = [[self.gamma * cos(abs(self.alpha) / 2 * (2 * self.s_end - s) ** 2)], [
+    #             -self.gamma * copysign(1, self.gamma) * sin(abs(self.alpha) / 2 * (2 * self.s_end - s) ** 2)]]
+    #         refs = matmult(matmult(self.T1, self.T2_inv), [[x_ref_aux], [y_ref_aux], [1]])
+    #         t_hat = matmult(matmult(self.R1, self.R2_inv), t_hat_aux)
+    #
+    #         return refs[0], refs[1], kappa, t_hat
+
+    def getCoordinatesTime(self, t):
+        if t > self.t_end:
+            self.is_end = True
+
+        if self.type == "in":
+            x_ref_aux = self.xCoord(self.gamma, self.alpha, self.speed * t)
+            y_ref_aux = self.yCoord(self.gamma, self.alpha, self.speed * t)
+
+            x_ref_deriv_aux = self.gamma * self.speed * cos(abs(self.alpha) * (self.speed * t) ** 2 / 2)
+            y_ref_deriv_aux = self.gamma * self.speed * copysign(1, self.alpha) * sin(
+                abs(self.alpha) * (self.speed * t) ** 2 / 2)
+
+            x_ref_d_deriv_aux = - self.gamma * t * abs(self.alpha) * self.speed ** 3 * sin(
+                abs(self.alpha) * (self.speed * t) ** 2 / 2)
+            y_ref_d_deriv_aux = self.gamma * t * abs(self.alpha) * self.speed ** 3 * copysign(1, self.alpha) * cos(
+                abs(self.alpha) * (self.speed * t) ** 2 / 2)
+
+            refs_d_deriv_aux = matmult(self.R1, [[x_ref_d_deriv_aux], [y_ref_d_deriv_aux]])
+            refs_deriv_aux = matmult(self.R1, [[x_ref_deriv_aux], [y_ref_deriv_aux]])
+            refs_aux = matmult(self.T1, [[x_ref_aux], [y_ref_aux], [1]])
+
+            # for debugging purposes (may be deleted later)
+            output_point = TrajectoryPoint(x_ref_aux, x_ref_deriv_aux, x_ref_d_deriv_aux, y_ref_aux, y_ref_deriv_aux,
+                                           y_ref_d_deriv_aux)
+            self.f1.write("{0} {1}\n".format(t, output_point))
+
+            return TrajectoryPoint(refs_aux[0][0], refs_deriv_aux[0][0], refs_d_deriv_aux[0][0], refs_aux[1][0],
+                                   refs_deriv_aux[1][0], refs_d_deriv_aux[1][0])
+
+        else:
+            x_ref_aux = self.xCoord(-self.gamma, self.alpha, self.s_end - self.speed * t)
+            y_ref_aux = self.yCoord(-self.gamma, self.alpha, self.s_end - self.speed * t)
+
+            x_ref_aux_deriv = self.gamma * self.speed * cos(
+                abs(self.alpha) * (self.s_end - self.speed * t) ** 2 / 2)
+            y_ref_aux_deriv = self.gamma * self.speed * copysign(1, self.alpha) * sin(
+                abs(self.alpha) * (self.s_end - self.speed * t) ** 2 / 2)
+
+            x_ref_aux_d_deriv = self.gamma * abs(self.alpha) * self.speed ** 2 * (self.s_end - self.speed * t) * sin(abs(self.alpha) * (self.s_end - self.speed * t) ** 2 / 2)
+            y_ref_aux_d_deriv = -self.gamma * abs(self.alpha) * copysign(1, self.alpha) * self.speed ** 2 * (self.s_end - self.speed * t) * cos(abs(self.alpha) * (self.s_end - self.speed * t) ** 2 / 2)
+
+            refs_d_deriv = matmult(matmult(self.R1, self.R2_inv), [[x_ref_aux_d_deriv], [y_ref_aux_d_deriv]])
+            refs_deriv = matmult(matmult(self.R1, self.R2_inv), [[x_ref_aux_deriv], [y_ref_aux_deriv]])
+            refs = matmult(matmult(self.T1, self.T2_inv), [[x_ref_aux], [y_ref_aux], [1]])
+            print(matmult(self.T2_inv, [[x_ref_aux], [y_ref_aux], [1]]))
+
+            # for debugging purposes (may be deleted later)
+            output_point = TrajectoryPoint(refs[0][0], refs_deriv[0][0], refs_d_deriv[0][0], refs[1][0], refs_deriv[1][0], refs_d_deriv[1][0])
+            self.f2.write("{0} {1}\n".format(t, output_point))
+
+            return TrajectoryPoint(refs[0][0], refs_deriv[0][0], refs_d_deriv[0][0], refs[1][0], refs_deriv[1][0], refs_d_deriv[1][0])
+
+
+
+
+
 # for debugging purposes (may be deleted later);
 # NOTE: delete "libs." before "Auxilary" in the imports
 # before launching the command: python3 TrajectoryStuff.py
 if __name__ == "__main__":
-    trajectory = ClothoidLine(Point(2, 2), v = 0.2)
+
+    trajectory_1 = ClothoidLine(Pose(0, 0, 0), -1, 0.118198, 4.892135, 0.2, type="in")
+    trajectory_2 = ClothoidLine(Pose(-4, -2, 1.4144176+pi), -1, -0.118198, 4.892135, 0.2, type="out")
+    trajectory_3 = AcademicClothoidLine(Point(-4, -2), 0.2)
     t = 0.0
-    f = open(PATH + "full.txt", 'w')
-    while t < 36:
-        trajectory_point = trajectory.getCoordinatesTime(t)
-        f.write("{0} {1}\n".format(t, trajectory_point))
+    f1 = open(PATH + "f1.txt", 'w')
+    f2 = open(PATH + "f2.txt", 'w')
+    f3 = open(PATH + "f3.txt", 'w')
+    while t < 24:
+        trajectory_point = trajectory_1.getCoordinatesTime(t)
+        f1.write("{0} {1}\n".format(t, trajectory_point))
+        trajectory_point = trajectory_2.getCoordinatesTime(t)
+        f2.write("{0} {1}\n".format(t, trajectory_point))
         t += 0.1
-    f.close()
+    t = 0
+    while t < 48:
+         trajectory_point = trajectory_3.getCoordinatesTime(t)
+         f3.write("{0} {1}\n".format(t, trajectory_point))
+         t += 0.1
+
+    f1.close()
+    f2.close()
+    f3.close()
