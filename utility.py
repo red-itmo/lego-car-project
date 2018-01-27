@@ -113,7 +113,7 @@ def ClosestPoint(A,B,P):
 	if(atb_dot_atp > 0):
 		if(bta_dot_btp > 0):
 			return find_perpendicular(A,B,P)
-		if(bta_dot_btp < 0):
+		else:
 			return [B.x,B.y]
 	else:
 		return [A.x,A.y]

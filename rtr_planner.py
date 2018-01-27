@@ -124,7 +124,7 @@ class Tree:
 	def Init(self,q,obstacles):
 		self.AddVertex(q)
 
-		print(q)
+		#print(q)
 		TCI = self.TCIExtend(q,"forward",obstacles)
 		q.child.append(TCI.q_end)
 		TCI.q_end.parent = q
@@ -191,6 +191,8 @@ class Tree:
 
 			else:
 				candidate_q = util.ClosestPoint(edge[0],edge[1].q_end,self.q(new_vertex,0))
+			#print("new vertex: " + str(type(new_vertex)))
+			#print("cand: " + str(type(candidate_q)))
 			candidate_dist = math.hypot(new_vertex[0] - candidate_q[0],new_vertex[1]-candidate_q[1])
 			if min_dist == None or candidate_dist < min_dist:
 				true_edge = edge
@@ -272,7 +274,7 @@ class RTR_PLANNER:
 
 				path = self.getpath(q_init,self.Tree_root.edges[-1],q_end,self.Tree_end.edges[n])
 				#self.Tree_root.draw_path(obstacles,path)
-				path = self.correct_angles_in_path(path)
+				#path = self.correct_angles_in_path(path)
 				# img = self.Tree_root.draw_path(obstacles,path,self.Tree_root.img)
 				# win_name = "Win1"
 				# cv2.namedWindow(win_name)
@@ -364,9 +366,9 @@ class RTR_PLANNER:
 # 	img = cv2.imread("35.png",1)
 # 	robot_pose=  detect.Car_detection().find_car(img)
 # 	print(robot_pose)
-# 	q_root = Tree.q(robot_pose[0],robot_pose[1])
+# 	q_root = Tree.q([100,100],0)
 # 	q_root.parent = None
-# 	q_end = Tree.q([500,400],0)
+# 	q_end = Tree.q([442,282],-0.0)
 # 	q_end.parent = None
 # 	robot = Robot([q_root.x,q_root.y],80,60)
 # 	rt_tree = RTR_PLANNER(robot,img)

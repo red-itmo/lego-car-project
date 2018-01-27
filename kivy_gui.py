@@ -6,6 +6,8 @@ from kivy.graphics.texture import Texture
 from kivy.uix.scatter import Scatter
 from kivy.uix.label import Label
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.scatterlayout import ScatterLayout
+from kivy.uix.anchorlayout import AnchorLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.widget import Widget
@@ -15,54 +17,72 @@ from kivy.config import Config
 import numpy as np
 import math
 import cv2 as cv
-import time 
+import time
+import rtr_planner as planner 
+import Car_detection as detect
 
 #cam res 640 480
-WINH = 720
-WINW = 960
+WINH = 600
+WINW = 1400
 global cam_res
 global cam_pose
-cam_res = (480,360)
-cam_pose = (0,180)
+cam_res = (640,480)
+cam_pose = (30,60)
 Config.set('graphics', 'width', str(WINW))
 Config.set('graphics', 'height', str(WINH))
 global is_drawing
+path_done = False
 is_drawing = False
 dest_exsist = False
 is_drawing_obst = False
 all_obst_points = []
 dest = "Not yet entered"
-px_to_m = 3.60 / math.hypot(420,300)
+px_to_m = 3.60 / math.hypot(cam_res[0],cam_res[1])
 
 class KivyCamera(Image):
 	def __init__(self, capture, fps, **kwargs):
 		super(KivyCamera, self).__init__(**kwargs)
 		self.capture = capture
+
 		Clock.schedule_interval(self.update, 1.0 / fps)
 		self.cam_mtx = np.load("cam_mtx.npy")
 		self.dist_coefs = np.load("dist_coefs.npy")
 
 	def update(self, dt):
-		ret, frame = self.capture.read()
+		global path_done
+		ret, self.frame = self.capture.read()
 		
 		#print(frame.shape[1],frame.shape[0])
 		if ret:
 			# convert it to texture
-			if(is_drawing):
-				buf1 = cv.flip(self.draw_path(self.clear_distort(frame)), 0)
+			if(path_done):
+				buf1 = cv.flip(self.draw_path(self.clear_distort(self.frame)), 0)
 			else:
-				buf1 = cv.flip(self.clear_distort(frame), 0)
+				buf1 = cv.flip(self.clear_distort(self.frame), 0)
 			buf = buf1.tostring()
 			image_texture = Texture.create(
-				size=(frame.shape[1],frame.shape[0] ), colorfmt='bgr')
+				size=(self.frame.shape[1],self.frame.shape[0] ), colorfmt='bgr')
 			image_texture.blit_buffer(buf, colorfmt='bgr', bufferfmt='ubyte')
 			# display image from the texture
+
 			self.texture = image_texture
+
 
 
 	def draw_path(self,img):
 		#print("im here")
-		return img
+		global path_done
+		global path
+		global rt_tree
+		if(path is None):
+			font = cv.FONT_HERSHEY_SIMPLEX
+			cv.putText(img,"Path not found",(30,30), font, 1,(0,0,255),2,cv.LINE_AA)
+			return img
+
+		if(path_done):
+			return rt_tree.Tree_root.draw_path([],path,img)
+		else:
+			return img
 
 	def clear_distort(self,img):
 		h,  w = img.shape[:2]
@@ -76,15 +96,20 @@ class KivyCamera(Image):
 
 
 class CamApp(App):
+
+
 	def build(self):
 		global dest
 		global dest_label
 		global button_layout
 
 		self.capture = cv.VideoCapture(0)
+		self.capture.set(cv.CAP_PROP_AUTOFOCUS, 0)
+		self.capture.set(cv.CAP_PROP_FOCUS, 4.5)
 		self.my_camera = KivyCamera(capture=self.capture, fps=30)
+
 		button_layout = BoxLayout(orientation = 'vertical')
-		general_layout = BoxLayout(orientation = 'horizontal')
+		general_layout = BoxLayout(orientation='horizontal')
 		teleop_layout = BoxLayout(orientation = 'vertical')
 		vel_label = Label(text = "Velocity: ")
 		angle_vel_label = Label(text = "Angular Velocity: ")
@@ -96,7 +121,7 @@ class CamApp(App):
 		clear_dest_btn = Button(text = 'Clear destination',size_hint=(1, 0.1),pos_hint = {'x':.0,'top': 1})
 		clear_obst_btn = Button(text = 'Clear obstacles',size_hint=(1, 0.1),pos_hint = {'x':.0,'top': 1})
 		clear_obst_btn.bind(on_release=self.clear_obstacles)
-		self.drawbtn = Button(text = 'Start drawing path',size_hint=(1, 0.1),pos_hint = {'x':.0,'top':.5})
+		self.drawbtn = Button(text = 'Construct path',size_hint=(1, 0.1),pos_hint = {'x':.0,'top':.5})
 		self.start_obst_drawing_btn = Button(text = 'Start Obstacles drawing',size_hint=(1, 0.1))
 		self.start_obst_drawing_btn.bind(on_release=self.obstacles_drawing_mode)
 		self.cam.add_widget(self.my_camera)
@@ -123,6 +148,8 @@ class CamApp(App):
 		dest_label.text = "Not yet entered"
 		dest_exsist = False
 		all_obst_points.append([0,0])
+		print(self.my_camera.pos)
+		print(self.my_camera.size)	
 		self.painter.canvas.clear()
 		dest = "Not yet entered"
 		with self.painter.canvas:
@@ -147,18 +174,47 @@ class CamApp(App):
 
 	def draw_path_btn(self,obj):
 		global is_drawing
-		is_drawing = not is_drawing
-		if(is_drawing):
-			self.drawbtn.text = 'Stop path drawing'
+		global dest
+		global path_done
+		global path
+		global rt_tree
+		global all_obst_points
+		path_done =False
+		
+		robot = planner.Robot([50,50],75,40)
+		rt_tree = planner.RTR_PLANNER(robot,np.zeros(shape=(480,640)))
+		robot_pose=  detect.Car_detection().find_car(self.my_camera.frame)
+		if(robot_pose[0]==False or robot_pose[1]==False):
+			print("car is not detected")
+		elif(type(dest) is str):
+			print("enter dest point first!")
 		else:
-			self.drawbtn.text = 'Start path drawing'
+			is_drawing = not is_drawing
+			q_root = planner.Tree.q(robot_pose[0],robot_pose[1])
+			q_root.parent = None
+			q_end = planner.Tree.q([int(dest[0]/px_to_m),cam_res[1]-int(dest[1]/px_to_m)],-self.painter.angle*math.pi/180)
+			print("POSE: ")
+			print(q_end.x,q_end.y,-self.painter.angle*math.pi/180)
+			q_end.parent = None
+			path = rt_tree.construct(q_root,q_end,all_obst_points,50,150)
+			print(path)
+			path_done = True
+			#if(is_drawing):
+			#	self.drawbtn.text = 'Stop path drawing'
+			#else:
+			#	self.drawbtn.text = 'Start path drawing'
 
 	def obstacles_drawing_mode(self,obj):
 		global is_drawing_obst
+		global all_obst_points
 		is_drawing_obst = not is_drawing_obst
 		if(is_drawing_obst):
 			self.start_obst_drawing_btn.text = "Stop Obstacles drawing"
 		else:
+			obst = all_obst_points
+			all_obst_points = []
+			all_obst_points.append(obst)
+			print(all_obst_points)
 			self.start_obst_drawing_btn.text = "Start Obstacles drawing"
 
 	class MyPaintWidget(Widget):
@@ -172,13 +228,13 @@ class CamApp(App):
 			#global self.dest_px
 			#global angle 
 			self.second_points = []
-			
+			print(touch.x,touch.y)
 			if(not is_drawing_obst and touch.x > cam_pose[0] and touch.y > cam_pose[1] and touch.x < cam_pose[0]+cam_res[0] and touch.y < cam_pose[1]+cam_res[1] and not dest_exsist):
 				with self.canvas:
 					self.lines = InstructionGroup() 
 					dest_exsist = True
 					self.dest_px = [touch.x,touch.y]
-					dest = [math.ceil(px_to_m*touch.x*100)/100,math.ceil(px_to_m*(touch.y-cam_pose[1])*100)/100]
+					dest = [math.ceil(px_to_m*(touch.x-cam_pose[0])*100)/100,math.ceil(px_to_m*(touch.y-cam_pose[1])*100)/100]
 					Color(1,0,0)
 					self.angle = 0
 					d=10.
@@ -203,11 +259,11 @@ class CamApp(App):
 				return ((x3-x1)/(x2-x1)==(y3-y1)/(y2-y1))
 
 			def coord_to_angle(x1,y1,x2,y2):
-				return math.atan2(y1 - y2, x1 - x2) / math.pi * 180
+				return	math.atan2(y1 - y2, x1 - x2) / math.pi * 180
 
 			def rasst(x1,y1,x2,y2):
 				return math.sqrt(math.pow(x1-x2,2)+math.pow(y1-y2,2))
-
+			
 			if(is_drawing_obst):
 				if(touch.x > cam_pose[0] and touch.y > cam_pose[1] and touch.x < cam_pose[0]+cam_res[0] and touch.y < cam_pose[1]+cam_res[1]):
 					all_obst_points.append([touch.x,touch.y])
@@ -243,25 +299,26 @@ class CamApp(App):
 							else:
 								self.canvas.clear()
 								Color(1,0,0)
-								for n in range(0,len(all_obst_points)-1):
-									if(all_obst_points[n]==[0,0] or all_obst_points[n+1]==[0,0]):
-										continue
-									Line(points = [all_obst_points[n][0],all_obst_points[n][1],all_obst_points[n+1][0],all_obst_points[n+1][1]],width = 3)
-								
-								Color(1,0,0)
-								Line(points = [self.dest_px[0],self.dest_px[1],circle_x,circle_y])
-								#Line(points = [circle_x,circle_y,circle_x+(-10*touch_cos+(10)*touch_sin),circle_y+((10)*touch_cos+10*touch_sin)])
-								Line(points = [circle_x,circle_y,circle_x_arrow,circle_y_arrow])
-								Line(points = [circle_x,circle_y,circle_x_arrow_2,circle_y_arrow_2])
-								# Line(points = [self.dest_px[0],self.dest_px[1],
-								# 	self.dest_px[0]+20*math.copysign(1,math.atan2(self.dest_px[0]-touch.x,self.dest_px[1]-touch.y)),
-								# 	self.dest_px[1]+20*math.copysign(1,math.atan2(self.dest_px[0]-touch.x,self.dest_px[1]-touch.y))])
-								d=10.
-								Ellipse(pos=(self.dest_px[0]- d/2,self.dest_px[1]-d/2),size=(d,d))
+								for obst in all_obst_points:
+									for n in range(0,len(obst)-1):
+										if(obst[n]==[0,0] or obst[n+1]==[0,0]):
+											continue
+										Line(points = [obst[n][0],obst[n][1],obst[n+1][0],obst[n+1][1]],width = 3)
+									
+									Color(1,0,0)
+									Line(points = [self.dest_px[0],self.dest_px[1],circle_x,circle_y])
+									#Line(points = [circle_x,circle_y,circle_x+(-10*touch_cos+(10)*touch_sin),circle_y+((10)*touch_cos+10*touch_sin)])
+									Line(points = [circle_x,circle_y,circle_x_arrow,circle_y_arrow])
+									Line(points = [circle_x,circle_y,circle_x_arrow_2,circle_y_arrow_2])
+									# Line(points = [self.dest_px[0],self.dest_px[1],
+									# 	self.dest_px[0]+20*math.copysign(1,math.atan2(self.dest_px[0]-touch.x,self.dest_px[1]-touch.y)),
+									# 	self.dest_px[1]+20*math.copysign(1,math.atan2(self.dest_px[0]-touch.x,self.dest_px[1]-touch.y))])
+									d=10.
+									Ellipse(pos=(self.dest_px[0]- d/2,self.dest_px[1]-d/2),size=(d,d))
 			
 						elif(len(self.second_points)==1):
 							Line(points = [self.dest_px[0],self.dest_px[1],touch.x,touch.y])
-						self.angle = coord_to_angle(self.dest_px[0],self.dest_px[1],touch.x,touch.y)
+						self.angle = coord_to_angle(touch.x,touch.y,self.dest_px[0],self.dest_px[1])
 						dest_label.text ="Destination point: " + str(dest) +"\n" + "Angle: " + str(math.ceil(self.angle*100)/100)
 	def on_stop(self):
 		#without this, app will not exit even if the window is closed
