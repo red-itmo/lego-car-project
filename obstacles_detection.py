@@ -32,7 +32,11 @@ class Mapping:
 				obst_coord = np.int0( np.around(obst_coord) )
 				first_point = [ obst_coord[0] ]
 				obst_coord = np.concatenate( (obst_coord, first_point ) )
-				obstacles.append( obst_coord )
+				line_coord = []
+				for i in range( 0, len(obst_coord) - 1 ):
+					line_coord.append( [ obst_coord[i], obst_coord[i+1] ] )
+				obstacles.append( line_coord )
+
 
 
 		return obstacles
