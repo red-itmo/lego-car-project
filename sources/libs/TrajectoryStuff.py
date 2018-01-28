@@ -1,5 +1,5 @@
 from math import sin, cos, atan2, sqrt, pi, copysign, radians
-from Auxilary import AngleFinder, matmult
+from libs.Auxilary import AngleFinder, matmult
 
 
 # for debugging purposes (may be deleted later)
@@ -293,7 +293,7 @@ class ClothoidLine(TrajectoryLine):
         super(ClothoidLine, self).__init__()
         self.gamma, self.alpha, self.s_end, self.type = gamma, alpha, s_end, type
         self.delta = (self.alpha * self.s_end ** 2) / 2
-        print(pose_0.angle)
+
         self.R1 = [[cos(pose_0.angle), -sin(pose_0.angle)], [sin(pose_0.angle), cos(pose_0.angle)]]
 
         self.T1 = [[cos(pose_0.angle), -sin(pose_0.angle), pose_0.point.x],
@@ -302,9 +302,7 @@ class ClothoidLine(TrajectoryLine):
 
         if type == "out":
             self.start_point = Point(self.xCoord(-self.gamma, self.alpha, self.s_end), self.yCoord(-self.gamma, self.alpha, self.s_end))
-            print(self.start_point.x, self.start_point.y)
-            self.delta += pi
-            self.R2_inv = [[cos(self.delta), -sin(self.delta)], [sin(self.delta), cos(self.delta)]]
+            self.R2_inv = [[cos(self.delta), sin(self.delta)], [-sin(self.delta), cos(self.delta)]]
             self.T2_inv = [
                 [cos(self.delta), sin(self.delta), -self.start_point.y * sin(self.delta) - self.start_point.x * cos(self.delta)],
                 [-sin(self.delta), cos(self.delta), -self.start_point.y * cos(self.delta) + self.start_point.x * sin(self.delta)],
@@ -418,7 +416,7 @@ class ClothoidLine(TrajectoryLine):
             refs_d_deriv = matmult(matmult(self.R1, self.R2_inv), [[x_ref_aux_d_deriv], [y_ref_aux_d_deriv]])
             refs_deriv = matmult(matmult(self.R1, self.R2_inv), [[x_ref_aux_deriv], [y_ref_aux_deriv]])
             refs = matmult(matmult(self.T1, self.T2_inv), [[x_ref_aux], [y_ref_aux], [1]])
-            print(matmult(self.T2_inv, [[x_ref_aux], [y_ref_aux], [1]]))
+
 
             # for debugging purposes (may be deleted later)
             output_point = TrajectoryPoint(refs[0][0], refs_deriv[0][0], refs_d_deriv[0][0], refs[1][0], refs_deriv[1][0], refs_d_deriv[1][0])
@@ -435,9 +433,9 @@ class ClothoidLine(TrajectoryLine):
 # before launching the command: python3 TrajectoryStuff.py
 if __name__ == "__main__":
 
-    trajectory_1 = ClothoidLine(Pose(0, 0, 0), -1, 0.118198, 4.892135, 0.2, type="in")
-    trajectory_2 = ClothoidLine(Pose(-4, -2, 1.4144176+pi), -1, -0.118198, 4.892135, 0.2, type="out")
-    trajectory_3 = AcademicClothoidLine(Point(-4, -2), 0.2)
+    trajectory_1 = ClothoidLine(Pose(0, 0, 0), 1, -0.118198, 4.892135, 0.2, type="in")
+    trajectory_2 = ClothoidLine(Pose(4, -2, -1.4144176), 1, 0.118198, 4.892135, 0.2, type="out")
+    trajectory_3 = AcademicClothoidLine(Point(4, -2), 0.2)
     t = 0.0
     f1 = open(PATH + "f1.txt", 'w')
     f2 = open(PATH + "f2.txt", 'w')
