@@ -58,21 +58,36 @@ class Mapping:
 
 		# only proceed if two contours were found
 		if blue_cntr and yellow_cntr:
+			for b_cntr in blue_cntr:
+				
+				# if contour's area is too big, it is not car's markers, check the next marker
+				if cv2.contourArea( b_cntr[0] ) > 100 or cv2.contourArea( b_cntr[0] ) == 0:
+					continue
 
-			# use founded contours to compute the minimum enclosing circles and
-			# centroids
-			(blue_coord, radius_blue) = cv2.minEnclosingCircle(blue_cntr[0])
-			blue_coord = ( int(blue_coord[0]), int(blue_coord[1]) )
-			M_blue = cv2.moments(blue_cntr[0])
-			center_blue = (int(M_blue["m10"] / M_blue["m00"]), int(M_blue["m01"] / M_blue["m00"]))
+				for y_cntr in yellow_cntr:
+					
+					# if contour's area is too big, it is not car's markers
+					if cv2.contourArea( y_cntr[0] ) > 100 or cv2.contourArea( y_cntr[0] ) == 0:
+						continue
 
-			(yellow_coord, radius_yellow) = cv2.minEnclosingCircle(yellow_cntr[0])
-			yellow_coord = ( int(yellow_coord[0]), int(yellow_coord[1]) )
-			M_yellow = cv2.moments(yellow_cntr[0])
-			center_yellow = (int(M_yellow["m10"] / M_yellow["m00"]), int(M_yellow["m01"] / M_yellow["m00"]))
+					print cv2.contourArea( y_cntr[0] ), cv2.contourArea( b_cntr[0] )
+					# use founded contours to compute the minimum enclosing circles and
+					# centroids
+					(blue_coord, radius_blue) = cv2.minEnclosingCircle(b_cntr[0])
+					blue_coord = ( int(blue_coord[0]), int(blue_coord[1]) )
+					M_blue = cv2.moments(b_cntr)
+					center_blue = (int(M_blue["m10"] / M_blue["m00"]), int(M_blue["m01"] / M_blue["m00"]))
 
-			coords, angle = self.get_pose( blue_coord, yellow_coord )
-			return coords, angle
+					(yellow_coord, radius_yellow) = cv2.minEnclosingCircle(y_cntr[0])
+					yellow_coord = ( int(yellow_coord[0]), int(yellow_coord[1]) )
+					M_yellow = cv2.moments(y_cntr)
+					center_yellow = (int(M_yellow["m10"] / M_yellow["m00"]), int(M_yellow["m01"] / M_yellow["m00"]))
+
+					coords, angle = self.get_pose( blue_coord, yellow_coord )
+
+					cv2.line( frame, tuple(blue_coord), tuple(yellow_coord), ( 255, 0, 0 ), 5 )
+
+					return coords, angle
 
 		# if less than two contours found, return ( False, False )
 		else:
@@ -97,7 +112,7 @@ class Mapping:
 		# Following loop deletes small contours
 		obstacles = []
 		for o in obst_cntrs:
-			if cv2.contourArea(o) > 500:
+			if cv2.contourArea(o) > 3100:
 				addToList = True
 				obst_coord = cv2.minAreaRect( o )
 				obst_coord = cv2.boxPoints( obst_coord )
