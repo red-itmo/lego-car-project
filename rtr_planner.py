@@ -4,7 +4,7 @@ import numpy as np
 import cv2
 import utility as util
 import copy
-import Car_detection as detect 
+
 random.seed()
 
 class Robot:
