@@ -54,7 +54,7 @@ class LegoCar:
         self.__motor_steer = LargeMotor(port_motor_steer)
         self.__sensor_gyro = GyroSensor(port_sensor_gyro)
 
-        self.__velocity_controller = VelocityController(self, 0, 0, adaptation=True)
+        self.__velocity_controller = VelocityController(self, 0, 0, adaptation=False)
 
         # NOTE: possible using other controllers. Change only here!
         self.__trajectory_controller = ControllerWithLinearization()
@@ -147,7 +147,7 @@ class LegoCar:
                 u_v, u_phi = self.__velocity_controller.getControls(radians(self.__motor_rear.speed),
                                                                     radians(self.__motor_steer.position),
                                                                     radians(omega), dt)
-                fh.write("%f %f %f %f\n" % (x, y, point.x, point.y))
+                fh.write("%f %f %f %f %f %f %f %f %f %f %f\n" % (t, x, y, point.x, point.y, v_r, v_des, theta, radians(omega), omega_des, self.__motor_steer.position))
                 self.__motor_rear.run_direct(duty_cycle_sp=u_v)
                 self.__motor_steer.run_direct(duty_cycle_sp=u_phi)
 
