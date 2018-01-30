@@ -20,6 +20,8 @@ import cv2 as cv
 import time
 import rtr_planner as planner
 import Mapping as mapping
+import Socket.Client as client
+import Socket.Server as server
 
 #cam res 640 480
 WINH = 600
@@ -104,7 +106,7 @@ class CamApp(App):
 		global dest_label
 		global button_layout
 
-		self.capture = cv.VideoCapture(0)
+		self.capture = cv.VideoCapture(1)
 		self.capture.set(cv.CAP_PROP_AUTOFOCUS, 0)
 		self.capture.set(cv.CAP_PROP_FOCUS, 4.5)
 		self.my_camera = KivyCamera(capture=self.capture, fps=30)
@@ -112,12 +114,12 @@ class CamApp(App):
 		button_layout = BoxLayout(orientation = 'vertical')
 		general_layout = BoxLayout(orientation='horizontal')
 		teleop_layout = BoxLayout(orientation = 'vertical')
-		vel_label = Label(text = "Velocity: ")
-		angle_vel_label = Label(text = "Angular Velocity: ")
-		dist_left_label = Label(text = "Distance left: ")
-		teleop_layout.add_widget(vel_label)
-		teleop_layout.add_widget(angle_vel_label)
-		teleop_layout.add_widget(dist_left_label)
+		self.vel_label = Label(text = "Velocity: ")
+		self.angle_vel_label = Label(text = "Angular Velocity: ")
+		self.dist_left_label = Label(text = "Distance left: ")
+		teleop_layout.add_widget(self.vel_label)
+		teleop_layout.add_widget(self.angle_vel_label)
+		teleop_layout.add_widget(self.dist_left_label)
 		self.cam = FloatLayout()
 		clear_dest_btn = Button(text = 'Clear destination',size_hint=(1, 0.1),pos_hint = {'x':.0,'top': 1})
 		clear_obst_btn = Button(text = 'Clear obstacles',size_hint=(1, 0.1),pos_hint = {'x':.0,'top': 1})
@@ -139,6 +141,8 @@ class CamApp(App):
 		button_layout.add_widget(teleop_layout)
 		general_layout.add_widget(self.cam)
 		general_layout.add_widget(button_layout)
+		event = Clock.schedule_interval(self.update, 1.)
+		self.robot_pose_old = [[0,0],0]
 		return general_layout
 
 	def clear_dest_point(self, obj):
@@ -169,6 +173,19 @@ class CamApp(App):
 			#print(dest)
 			if(not type(dest) is str):
 				Ellipse(pos=((dest[0]/px_to_m-d/2),cam_pose[1]+dest[1]/px_to_m-d/2),size=(d,d))
+
+	def update(self,dt):
+
+		robot_pose_new = mapping.Mapping().find_car(self.my_camera.frame)
+		print(robot_pose_new)
+		print(self.robot_pose_old)
+		if(robot_pose_new[0] is not False and robot_pose_new[1] is not False):
+			velocity = (robot_pose_new[0][0]-self.robot_pose_old[0][0])/dt
+			angular_velocity = (robot_pose_new[0][1] - self.robot_pose_old[0][1])/dt
+			self.vel_label =  "Velocity: " + str(velocity)
+			self.angle_vel_label =  "Angular Velocity: " +str(angular_velocity)
+			self.robot_pose_old =  robot_pose_new
+
 
 	def draw_path_btn(self,obj):
 		global is_drawing

@@ -14,10 +14,10 @@ class Robot:
 		self.width = width
 		self.height = height
 		self.centr_p1 = p1
-		
+
 
 	def get4pointsofrobot(self,q):
-		
+
 		r1 = math.sqrt(math.pow(self.width/4,2)+math.pow(self.height/2,2))
 		r2 = math.sqrt(math.pow(self.width/4,2)+math.pow(self.height/2,2))
 		r3 = math.sqrt(math.pow(self.width/4*3,2)+math.pow(self.height/2,2))
@@ -47,11 +47,11 @@ class Robot:
 		#turn_radius = 5
 		if(primitive == "translate" and direction=="forward"):
 			#print(points_of_robot[3])
-			points_of_robot[3] =[points_of_robot[3][0]+turn_radius*math.cos(q.theta),points_of_robot[3][1]+turn_radius*math.sin(q.theta)] 
-			points_of_robot[2] =[points_of_robot[2][0]+turn_radius*math.cos(q.theta),points_of_robot[2][1]+turn_radius*math.sin(q.theta)]  
+			points_of_robot[3] =[points_of_robot[3][0]+turn_radius*math.cos(q.theta),points_of_robot[3][1]+turn_radius*math.sin(q.theta)]
+			points_of_robot[2] =[points_of_robot[2][0]+turn_radius*math.cos(q.theta),points_of_robot[2][1]+turn_radius*math.sin(q.theta)]
 		if(primitive == "translate" and direction=="backward"):
-			points_of_robot[0] =[points_of_robot[0][0]-turn_radius*math.cos(q.theta),points_of_robot[0][1]-turn_radius*math.sin(q.theta)] 
-			points_of_robot[1] =[points_of_robot[1][0]-turn_radius*math.cos(q.theta),points_of_robot[1][1]-turn_radius*math.sin(q.theta)] 
+			points_of_robot[0] =[points_of_robot[0][0]-turn_radius*math.cos(q.theta),points_of_robot[0][1]-turn_radius*math.sin(q.theta)]
+			points_of_robot[1] =[points_of_robot[1][0]-turn_radius*math.cos(q.theta),points_of_robot[1][1]-turn_radius*math.sin(q.theta)]
 
 
 		Crash = util.CrossesObstacles(points_of_robot[0],points_of_robot[-1],obstacles)
@@ -61,8 +61,8 @@ class Robot:
 			Crash = util.CrossesObstacles(points_of_robot[i],points_of_robot[i+1],obstacles)
 			if(Crash):
 				return True
-		
-		
+
+
 		if(not util.inRangeOfImg(points_of_robot,img)):
 			return True
 		return Crash
@@ -81,10 +81,10 @@ class Tree:
 		def Translate(self,direction,cost):
 
 			if(direction == "forward"):
-				self.x += cost*math.cos(self.theta) 
+				self.x += cost*math.cos(self.theta)
 				self.y += cost*math.sin(self.theta)
 			elif(direction == "backward"):
-				self.x -= cost*math.cos(self.theta) 
+				self.x -= cost*math.cos(self.theta)
 				self.y -= cost*math.sin(self.theta)
 			else:
 				print("Specify directionection by 'forward' or 'backward'")
@@ -93,12 +93,12 @@ class Tree:
 			self.theta += angle
 
 		def __str__(self):
-			return ("|" +str(self.x) + " " + str(self.y) + " " + str(self.theta) + "|" ) 
+			return ("|" +str(self.x) + " " + str(self.y) + " " + str(self.theta) + "|" )
 
 
 
 	class TCI:
-		
+
 		def __init__(self,q_begin,q_end):
 			self.q_begin = q_begin
 			self.q_end = q_end
@@ -197,8 +197,8 @@ class Tree:
 			if min_dist == None or candidate_dist < min_dist:
 				true_edge = edge
 				min_dist = candidate_dist
-				min_q = candidate_q 
-				orient = edge[0].theta 
+				min_q = candidate_q
+				orient = edge[0].theta
 		Q = self.q(min_q,orient)
 		Q.parent = true_edge[0]
 		return Q
@@ -216,7 +216,7 @@ class Tree:
 		for obstacle in obstacles:
 			for i in range(len(obstacle)-1):
 				cv2.line(img,(obstacle[i][0],obstacle[i][1]),(obstacle[i+1][0],obstacle[i+1][1]),(0,255,0))
-		
+
 		win_name = "Win1"
 		cv2.namedWindow(win_name)
 		cv2.imshow(win_name,img)
@@ -224,9 +224,9 @@ class Tree:
 
 	def draw_robot(self,img,q,color):
 		p_for_line = self.robot.get4pointsofrobot(q)
-		cv2.circle(img,(int(q.x),int(q.y)),5,(255,0,0),-1)	
+		cv2.circle(img,(int(q.x),int(q.y)),5,(255,0,0),-1)
 		for i in range(len(p_for_line)-1):
-			cv2.line(img,(int(p_for_line[i][0]),int(p_for_line[i][1])),(int(p_for_line[i+1][0]),int(p_for_line[i+1][1])),color)				
+			cv2.line(img,(int(p_for_line[i][0]),int(p_for_line[i][1])),(int(p_for_line[i+1][0]),int(p_for_line[i+1][1])),color)
 		cv2.line(img,(int(p_for_line[0][0]),int(p_for_line[0][1])),(int(p_for_line[-1][0]),int(p_for_line[-1][1])),color)
 		return img
 
@@ -254,7 +254,7 @@ class RTR_PLANNER:
 
 	def construct(self,q_init,q_end,obstacles,max_expand_dist = 50,n_of_iterations = 50):
 		self.Tree_root.Init(q_init,obstacles)
-		self.Tree_end.Init(q_end,obstacles)		
+		self.Tree_end.Init(q_end,obstacles)
 		for k in range(n_of_iterations):
 			P_g_init = self.RandomPos(self.dims)
 			P_g_end = self.RandomPos(self.dims)
@@ -269,12 +269,12 @@ class RTR_PLANNER:
 			if collision_end:
 				self.Tree_end.Extend(q_near_end, -math.copysign(1,turndirection_end)* (2*math.pi - abs(turndirection_end)),obstacles)
 			n,goal_achieved = self.checkGoal(self.Tree_root.edges[-1],self.Tree_end.edges,obstacles)
-		
+
 			if(goal_achieved):
 
 				path = self.getpath(q_init,self.Tree_root.edges[-1],q_end,self.Tree_end.edges[n])
 				#self.Tree_root.draw_path(obstacles,path)
-				#path = self.correct_angles_in_path(path)
+				# path = self.correct_angles_in_path(path)
 				# img = self.Tree_root.draw_path(obstacles,path,self.Tree_root.img)
 				# win_name = "Win1"
 				# cv2.namedWindow(win_name)
@@ -306,18 +306,18 @@ class RTR_PLANNER:
 		path1 = []
 		q_step = edge_init[0]
 		while(q_step is not None):
-			
+
 			path1.append(q_step)
 			q_step = q_step.parent
 
-		
+
 		path1 = path1[::-1]
 		path2 = []
 		q_step = edge_end[0]
 		while(q_step is not None):
 			path2.append(q_step)
 			q_step = q_step.parent
-		
+
 		intersection = util.line_intersection([[edge_init[0].x,edge_init[0].y],[edge_init[1].q_end.x,edge_init[1].q_end.y]],
 												[[edge_end[0].x,edge_end[0].y],[edge_end[1].q_end.x,edge_end[1].q_end.y]])
 		path1.append(Tree.q(intersection,path1[-1].theta))
@@ -386,4 +386,3 @@ class RTR_PLANNER:
 
 # if __name__ == '__main__':
 # 	main()
-
