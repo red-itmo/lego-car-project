@@ -18,6 +18,8 @@ class Client:
         self.s.close()
 
     def get_data(self):
+        self.s.send( str.encode(str(1)) )
+        self.s.settimeout(1)
         data = self.s.recv(2048)
         data = pickle.loads(data)
         if not data:
