@@ -113,7 +113,7 @@ class Mapping:
 		# Following loop deletes small contours
 		obstacles = []
 		for o in obst_cntrs:
-			if cv.contourArea(o) > 3100:
+			if cv.contourArea(o) > 900:
 				addToList = True
 				obst_coord = cv.minAreaRect( o )
 				obst_coord = cv.boxPoints( obst_coord )
@@ -122,9 +122,34 @@ class Mapping:
 				obst_coord = np.concatenate( (obst_coord, first_point ) )
 				line_coord = []
 				for i in range( 0, len(obst_coord) - 1 ):
-					line_coord.append( [ obst_coord[i], obst_coord[i+1] ] )
+					line_coord.append( [ tuple( obst_coord[i] ) , tuple( obst_coord[i+1]) ] )
 				obstacles.append( line_coord )
 
 
 
 		return obstacles
+
+
+
+"""camera = cv.VideoCapture(1)
+
+grid = Mapping()
+
+while True:
+	_, frame = camera.read()
+
+	obst = grid.get_map(frame)
+	for o in obst:
+		for l in o:
+			cv.line( frame, tuple( l[0] ), tuple( l[1] ), ( 255, 0, 0 ), 3 )
+
+	cv.imshow("Frame", frame)
+	k = cv.waitKey(5) & 0xFF
+	if k == 27:
+		break
+
+
+cv.waitKey(0)
+cv.destroyAllWindows()
+"""
+
