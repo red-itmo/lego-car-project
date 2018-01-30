@@ -43,6 +43,7 @@ function poses = calcClothoidPoints(gamm, alpha, s_end, typ, step)
             poses(i, :) = [xCoord(gamm, alpha, s), yCoord(gamm, alpha, s), 0.5 * alpha * s^2];
             i = i + 1;
         end
+        poses(i, :) = [xCoord(gamm, alpha, s_end), yCoord(gamm, alpha, s_end), 0.5 * alpha * s_end^2];
     else
         origin_pose = [xCoord(-gamm, alpha, s_end), yCoord(-gamm, alpha, s_end), 0.5 * alpha * s_end^2];
         i = 1;
@@ -51,6 +52,8 @@ function poses = calcClothoidPoints(gamm, alpha, s_end, typ, step)
             poses(i, :) = transformCoords(origin_pose, aux_pose, 'b');
             i = i + 1;
         end
+        aux_pose = [xCoord(-gamm, alpha, 0.0), yCoord(-gamm, alpha, 0.0), 0];
+        poses(i, :) = transformCoords(origin_pose, aux_pose, 'b');
     end
 endfunction
 
@@ -58,11 +61,11 @@ endfunction
 function poses = calcArcPoints(delta, k, step)
 
     i = 1;
-    for d = 0:step:delta
+    for d = 0:sign(delta)*abs(step*k):delta
         poses(i, :) = [sin(d) / k, (1 - cos(d)) / k, d]
         i = i + 1;
     end
-
+    poses(i, :) = [sin(delta) / k, (1 - cos(delta)) / k, delta]
 endfunction
 
 
@@ -70,11 +73,12 @@ function poses = calcStraightLinePoints(pose_0, pose_1, s_end, step)
 
     alpha = atan(pose_1(2) - pose_0(2), pose_1(1) - pose_0(1));
     i = 1;
+    
     for s = 0:step:s_end
         poses(i, :) = [s*cos(alpha),  s*sin(alpha), pose_0(3)]
         i = i + 1;
     end
-
+    poses(i, :) = [s_end*cos(alpha),  s_end*sin(alpha), pose_0(3)]
 endfunction
 
 
@@ -102,9 +106,10 @@ function poses = calcPathElementPoints(element, start_pose, step)
     if element(1) == "ClothoidLine" then
         aux_poses = calcClothoidPoints(element(2), element(3), element(4), element(5), step);
     elseif element(1) == "CircleLine" then
-        aux_poses = calcArcPoints(element(2), element(3), element(4), element(5), step); //needs to be fixed
+        aux_poses = calcArcPoints(element(2), element(3), step); //needs to be fixed
     elseif element(1) == "StraightLine" then
         aux_poses = calcStraightLinePoints(element(2), element(3), element(4), step);
     end
     poses = transformCoords(start_pose, aux_poses);
+    printf("angle0 = %f\n", start_pose(3));
 endfunction
