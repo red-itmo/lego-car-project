@@ -42,6 +42,10 @@ class Server:
     def send(self, data):
         data = pickle._dumps(data)
         if self.client_info:
+            self.s.settimeout(1)
+            ask = self.client_info[0].recv(1024)
+            if not ask:
+                return False
             self.client_info[0].send(data)
             # if no acknowledgment within 0.1 sec - whole thing gonna crash
             try:
