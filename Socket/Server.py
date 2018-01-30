@@ -58,3 +58,6 @@ class Server:
                 return False
         else:
             return False
+
+#serv = Server()
+print(socket.gethostname())

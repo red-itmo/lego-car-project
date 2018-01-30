@@ -1,7 +1,7 @@
 import cv2 as cv
 import numpy as np
-
-
+import utility as util
+import math
 
 class Mapping:
 # Constructor
@@ -21,15 +21,15 @@ class Mapping:
 			# for calculating the angle of a robot scalar multiplication of vectors is used
 			orient_vector = ( yellow[0] - blue[0], yellow[1] - blue[1] )
 			thetha = np.arccos( 1.0 * orient_vector[0] / np.sqrt( orient_vector[0] ** 2 + orient_vector[1] ** 2 ) )
-			
+
 			if blue[1] > yellow[1]:
 				thetha = -thetha
-		
+
 			return ( int(blue[0]), int(blue[1]) ), thetha
 
 	def distance(self, p, q ):
 		d = np.sqrt( (p[0] - q[0])**2 + (p[1] - q[1])**2 )
-		
+
 		return d
 
 
@@ -122,6 +122,10 @@ class Mapping:
 
 	# Method returns list of line coordinates of the obstacles
 	def get_map(self, frame):
+		def inObst(point,obs_point):
+				d = math.sqrt(math.pow((point[0]-obs_point[0]),2)+math.pow((point[1]-obs_point[1]),2))
+				return d<30
+
 		# Convert image into grayscale
 		gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
 		# Blur the image, apply binominal otsu filter
@@ -136,18 +140,21 @@ class Mapping:
 
 		# Following loop deletes small contours
 		obstacles = []
+		car_x_y = self.find_car(frame)[0]
 		for o in obst_cntrs:
-			if cv.contourArea(o) > 900:
-				addToList = True
-				obst_coord = cv.minAreaRect( o )
-				obst_coord = cv.boxPoints( obst_coord )
-				obst_coord = np.int0( np.around(obst_coord) )
+			if cv.contourArea(o)>900:
+				M = cv.moments(o)
+				print(M)
+				count_center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+				if not inObst([car_x_y[0],car_x_y[1]],count_center) :
+					addToList = True
+					obst_coord = cv.minAreaRect( o )
+					obst_coord = cv.boxPoints( obst_coord )
+					obst_coord = np.int0( np.around(obst_coord) )
 
-				first_point = [ obst_coord[0] ]
-				obst_coord = np.concatenate( (obst_coord, first_point ) )
-				for i in range( 0, len(obst_coord) - 1 ):
-					obstacles.append( [ list( obst_coord[i] ) , list( obst_coord[i+1]) ] )
+					first_point = [ obst_coord[0] ]
+					obst_coord = np.concatenate( (obst_coord, first_point ) )
+					for i in range( 0, len(obst_coord) - 1 ):
+						obstacles.append( [ list( obst_coord[i] ) , list( obst_coord[i+1]) ] )
 
 		return obstacles
-
-

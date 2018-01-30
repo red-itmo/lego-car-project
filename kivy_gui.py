@@ -142,9 +142,11 @@ class CamApp(App):
 		general_layout.add_widget(self.cam)
 		general_layout.add_widget(button_layout)
 
-		#port = 3000
-		#self.serv = server.Server(port)
-		#print(self.serv.ready())
+		print("Trying to connect to remote server")
+		port = 3000
+		self.serv = server.Server(port)
+		print(self.serv.ready())
+		print("Connection esteblished")
 
 		event = Clock.schedule_interval(self.update, 1.)
 		self.robot_pose_old = [[0,0],0]
@@ -192,7 +194,7 @@ class CamApp(App):
 			self.vel_label.text =  "Velocity: " + str(velocity)
 			self.angle_vel_label.text =  "Angular Velocity: " +str(angular_velocity)
 			self.robot_pose_old =  robot_pose_new
-			#self.serv.send([robot_pose_new[0],robot_pose_new[1]])
+			self.serv.send([robot_pose_new[0],robot_pose_new[1]])
 
 			#self.serv.send([robot_pose_new[0],robot_pose_new[1]])
 
@@ -211,6 +213,13 @@ class CamApp(App):
 		rt_tree = planner.RTR_PLANNER(robot,np.zeros(shape=(480,640)))
 		robot_pose=  mapping.Mapping().find_car(self.my_camera.frame)
 		obst = mapping.Mapping().get_map(self.my_camera.frame)
+		img = self.my_camera.frame
+		for obstacle in obst:
+			for i in range(len(obstacle)-1):
+				cv.line(img,(obstacle[i][0],obstacle[i][1]),(obstacle[i+1][0],obstacle[i+1][1]),(0,255,0))
+		cv.namedWindow("WIN1")
+		cv.imshow("WIN1",img)
+		cv.waitKey(0)
 		print("Robot pose: " + str(robot_pose))
 		print("Obstacles: " + str(obst))
 		if(robot_pose[0]==False or robot_pose[1]==False):
@@ -218,6 +227,7 @@ class CamApp(App):
 		elif(type(dest) is str):
 			print("enter dest point first!")
 		else:
+			self.serv.send([robot_pose[0][0]*px_to_m,robot_pose[0][1]*px_to_m,robot_pose[1][0]])
 			is_drawing = not is_drawing
 			q_root = planner.Tree.q(robot_pose[0],robot_pose[1])
 			q_root.parent = None
@@ -225,11 +235,11 @@ class CamApp(App):
 			print("POSE: ")
 			print(q_end.x,q_end.y,-self.painter.angle*math.pi/180)
 			q_end.parent = None
-			path = rt_tree.construct(q_root,q_end,obst,50,150)
+			path = rt_tree.construct(q_root,q_end,obst,50,50)
 
 			#FIXME
 			transform_path = path
-			#self.serv.send(transform_path)
+
 			print(path)
 			path_done = True
 
