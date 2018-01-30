@@ -56,18 +56,19 @@ class Mapping:
 		yellow_cntr = cv.findContours(mask_yellow.copy(), cv.RETR_EXTERNAL,
 			cv.CHAIN_APPROX_SIMPLE)[-2]
 
+		print cv.contourArea( blue_cntr[0] ), cv.contourArea(yellow_cntr[0])
 		# only proceed if two contours were found
 		if blue_cntr and yellow_cntr:
 			for b_cntr in blue_cntr:
 
 				# if contour's area is too big, it is not car's markers, check the next marker
-				if cv.contourArea( b_cntr[0] ) > 100 or cv.contourArea( b_cntr[0] ) == 0:
+				if cv.contourArea( b_cntr ) > 100 or cv.contourArea( b_cntr ) == 0:
 					continue
 
 				for y_cntr in yellow_cntr:
 
 					# if contour's area is too big, it is not car's markers
-					if cv.contourArea( y_cntr[0] ) > 100 or cv.contourArea( y_cntr[0] ) == 0:
+					if cv.contourArea( y_cntr ) > 100 or cv.contourArea( y_cntr ) == 0:
 						continue
 
 					print (cv.contourArea( y_cntr[0] ), cv.contourArea( b_cntr[0] ))
