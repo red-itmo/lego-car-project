@@ -22,12 +22,6 @@ class Mapping:
 				thetha = -thetha
 			return ( int(blue[0]), int(blue[1]) ), thetha
 
-	def distance(self, p, q ):
-		d = np.sqrt( (p[0] - q[0])**2 + (p[1] - q[1])**2 )
-		return d
-
-
-
 		# TO GET THE POSE OF THE CAR, LAUNCH THIS FUNCTION
 		# method gets a frame as an argument, returns tuple of coordinates of
 		# blue marker and angle of a robot
@@ -62,6 +56,7 @@ class Mapping:
 		yellow_cntr = cv.findContours(mask_yellow.copy(), cv.RETR_EXTERNAL,
 			cv.CHAIN_APPROX_SIMPLE)[-2]
 
+		#print cv.contourArea( blue_cntr[0] ), cv.contourArea(yellow_cntr[0])
 		# only proceed if two contours were found
 		if blue_cntr and yellow_cntr:
 			for b_cntr in blue_cntr:
@@ -76,6 +71,7 @@ class Mapping:
 					if cv.contourArea( y_cntr ) > 100 or cv.contourArea( y_cntr ) == 0:
 						continue
 
+				#	print (cv.contourArea( y_cntr[0] ), cv.contourArea( b_cntr[0] ))
 					# use founded contours to compute the minimum enclosing circles and
 					# centroids
 					(blue_coord, radius_blue) = cv.minEnclosingCircle(b_cntr[0])
@@ -83,16 +79,14 @@ class Mapping:
 					M_blue = cv.moments(b_cntr)
 					center_blue = (int(M_blue["m10"] / M_blue["m00"]), int(M_blue["m01"] / M_blue["m00"]))
 
-
 					(yellow_coord, radius_yellow) = cv.minEnclosingCircle(y_cntr[0])
 					yellow_coord = ( int(yellow_coord[0]), int(yellow_coord[1]) )
 					M_yellow = cv.moments(y_cntr)
 					center_yellow = (int(M_yellow["m10"] / M_yellow["m00"]), int(M_yellow["m01"] / M_yellow["m00"]))
 
-					if self.distance( center_blue, center_yellow ) > 70:
-						continue
-
 					coords, angle = self.get_pose( blue_coord, yellow_coord )
+
+					#cv.line( frame, tuple(blue_coord), tuple(yellow_coord), ( 255, 0, 0 ), 5 )
 
 					return coords, angle
 			return (False,False)
@@ -119,7 +113,7 @@ class Mapping:
 		# Following loop deletes small contours
 		obstacles = []
 		for o in obst_cntrs:
-			if cv.contourArea(o) > 900:
+			if cv.contourArea(o) > 3100:
 				addToList = True
 				obst_coord = cv.minAreaRect( o )
 				obst_coord = cv.boxPoints( obst_coord )
@@ -128,7 +122,7 @@ class Mapping:
 				obst_coord = np.concatenate( (obst_coord, first_point ) )
 				line_coord = []
 				for i in range( 0, len(obst_coord) - 1 ):
-					line_coord.append( [ tuple( obst_coord[i] ) , tuple( obst_coord[i+1]) ] )
+					line_coord.append( [ obst_coord[i], obst_coord[i+1] ] )
 				obstacles.append( line_coord )
 
 
