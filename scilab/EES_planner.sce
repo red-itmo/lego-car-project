@@ -22,7 +22,7 @@ function [descr, _length, robot_poses] = plannerEES(start_pose, goal_pose, v_des
 
     // finding of init coordinates in the frame where goal point has (0,0,0) coordinates
     pose(1,:) = transformCoords(goal_pose, init_pose, 'b');
-    disp(pose(1,:), "pose(1) = ")
+
     // check for boundaries
     if pose(1,3) > %pi then
         pose(1,3) = pose(1,3) - 2*%pi;
@@ -81,7 +81,6 @@ function [descr, _length, robot_poses] = plannerEES(start_pose, goal_pose, v_des
         gamm(3,:) = -sign(pose(3, 1));
         s_end(3,:) = abs(pose(3, 1));
         pose(3, 2) = 0;
-        disp(pose(3, :), "pose(3)=");
 
         // calculating of gamma, s and alpha
         for i = 1:2
@@ -115,15 +114,15 @@ function [descr, _length, robot_poses] = plannerEES(start_pose, goal_pose, v_des
         descr = list();
         descr($+1) = list("StraightLine", [0, 0, 0], [pose(3, 1:2), 0], s_end(3), v_des);
         for i = 2:-1:1
-            descr($+1) = list("ClothoidLine", -gamm(i), -alpha(i), s_end(i), 'in', v(i));
-            descr($+1) = list("ClothoidLine", -gamm(i), alpha(i), s_end(i), 'out', v(i));
+            descr($+1) = list("ClothoidLine", [0, 0, 0], -gamm(i), -alpha(i), s_end(i), 'in', v(i));
+            descr($+1) = list("ClothoidLine", [0, 0, 0], -gamm(i), alpha(i), s_end(i), 'out', v(i));
         end
     else
         aux_pose = pose(1,:);
         descr = list();
         for i = 1:2
-            descr($+1) = list("ClothoidLine", gamm(i),  alpha(i), s_end(i), 'in', v(i));
-            descr($+1) = list("ClothoidLine", gamm(i), -alpha(i), s_end(i), 'out', v(i));
+            descr($+1) = list("ClothoidLine", [0, 0, 0], gamm(i),  alpha(i), s_end(i), 'in', v(i));
+            descr($+1) = list("ClothoidLine", [0, 0, 0], gamm(i), -alpha(i), s_end(i), 'out', v(i));
         end
         descr($+1) = list("StraightLine", [pose(3, 1:2), 0], [0, 0, 0], s_end(3), v_des);
     end
@@ -139,9 +138,17 @@ function [descr, _length, robot_poses] = plannerEES(start_pose, goal_pose, v_des
     robot_poses = [];
     for i = 1:5
         poses = calcPathElementPoints(descr(i), aux_pose, 0.05);
+
+        if descr(i)(1) == "ClothoidLine" then
+            descr(i)(2) = transformCoords(goal_pose, transformCoords(aux_pose, descr(i)(2)));
+        elseif descr(i)(1) == "StraightLine" then
+            descr(i)(2) = transformCoords(goal_pose, transformCoords(aux_pose, descr(i)(2)));
+            descr(i)(3) = transformCoords(goal_pose, transformCoords(aux_pose, descr(i)(3)));
+        end
+
         aux_pose = poses($, :);
-        disp(poses);
         add_poses = transformCoords(goal_pose, poses);
+        disp(add_poses);
         robot_poses = [robot_poses; add_poses];
         plot2d(add_poses(:,1), add_poses(:,2), i);
     end

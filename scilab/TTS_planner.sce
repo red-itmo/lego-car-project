@@ -1,18 +1,3 @@
-// INPUT DATA
-
-// initial pose
-x_init = 2;
-y_init = 1;
-theta_init = 0.0;
-
-// goal pose
-x_goal = 2;
-y_goal = 0;
-theta_goal = 0.0;
-
-// desired speed
-v_des = 0.2;
-
 // specification
 k_max = 1.5;
 k_max = 0.9 * k_max;
@@ -128,39 +113,62 @@ function [descr, _length, robot_poses] = plannerTTS(start_pose, goal_pose, v_des
 
     // outputs calculation
 
-    //path's length
-    _length = 2*sum(s_end) - s_end(3);
-
     // path's description in list form
     if argn(2) == 4 & _mode == 'r' then
         descr = list();
         descr($+1) = list("StraightLine", [0, 0, 0], [pose(3, 1:2), 0], s_end(3), v_des);
         for i = 2:-1:1
-            descr($+1) = list("ClothoidLine", -gamm(i), -alpha(i), s_end(i), 'in', v(i));
-            descr($+1) = list("CircleLine", -delta_C(i), k(i), v(i));
-            descr($+1) = list("ClothoidLine", -gamm(i), alpha(i), s_end(i), 'out', v(i));
+            descr($+1) = list("ClothoidLine", [0, 0, 0], -gamm(i), -alpha(i), s_end(i), 'in', v(i));
+            if -delta_C(i) > 0 then
+                direction = 'ccw';
+            else
+                direction = 'cw';
+            end
+            descr($+1) = list("CircleLine", [0, 1/k(i), 0], [0, 0, 0], [sin(-delta_C(i)) / k(i), (1 - cos(-delta_C(i))) / k(i), -delta_C(i)], direction, v(i));
+            descr($+1) = list("ClothoidLine", [0, 0, 0], -gamm(i), alpha(i), s_end(i), 'out', v(i));
         end
     else
         descr = list();
         for i = 1:2
-            descr($+1) = list("ClothoidLine", gamm(i),  alpha(i), s_end(i), 'in', v(i));
-            descr($+1) = list("CircleLine", delta_C(i), k(i), v(i));
-            descr($+1) = list("ClothoidLine", gamm(i), -alpha(i), s_end(i), 'out', v(i));
+            descr($+1) = list("ClothoidLine", [0, 0, 0], gamm(i),  alpha(i), s_end(i), 'in', v(i));
+            if delta_C(i) > 0 then
+                direction = 'ccw';
+            else
+                direction = 'cw';
+            end
+            descr($+1) = list("CircleLine", [0, 1/k(i), 0], [0, 0, 0], [sin(delta_C(i)) / k(i), (1 - cos(delta_C(i))) / k(i), delta_C(i)], direction, v(i));
+            descr($+1) = list("ClothoidLine", [0, 0, 0], gamm(i), -alpha(i), s_end(i), 'out', v(i));
         end
         descr($+1) = list("StraightLine", [pose(3, 1:2), 0], [0, 0, 0], s_end(3), v_des);
     end
-    
+
     // choosing of appropriate start point and some plotting
     if argn(2) == 4 & _mode == 'r' then
         aux_pose = [0,0,0];
+        //path's length
+//        _length = sum(s_end) + sum(s_end([2, 4, 5, 7]));
     else
         aux_pose = pose(1,:);
+        //path's length
+        _length = sum(s_end) - s_end(3);
     end
 
     // calculation arrays of data
     robot_poses = [];
     for i = 1:7
         poses = calcPathElementPoints(descr(i), aux_pose, 0.05);
+
+        if descr(i)(1) == "ClothoidLine" then
+            descr(i)(2) = transformCoords(goal_pose, transformCoords(aux_pose, descr(i)(2)));
+        elseif descr(i)(1) == "CircleLine" then
+            descr(i)(2) = transformCoords(goal_pose, transformCoords(aux_pose, descr(i)(2)));
+            descr(i)(3) = transformCoords(goal_pose, transformCoords(aux_pose, descr(i)(3)));
+            descr(i)(4) = transformCoords(goal_pose, transformCoords(aux_pose, descr(i)(4)));
+        elseif descr(i)(1) == "StraightLine" then
+            descr(i)(2) = transformCoords(goal_pose, transformCoords(aux_pose, descr(i)(2)));
+            descr(i)(3) = transformCoords(goal_pose, transformCoords(aux_pose, descr(i)(3)));
+        end
+
         aux_pose = poses($, :);
         add_poses = transformCoords(goal_pose, poses);
         robot_poses = [robot_poses; add_poses];
