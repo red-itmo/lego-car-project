@@ -150,3 +150,4 @@ class Mapping:
 
 		return obstacles
 
+

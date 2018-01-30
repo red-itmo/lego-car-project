@@ -141,6 +141,11 @@ class CamApp(App):
 		button_layout.add_widget(teleop_layout)
 		general_layout.add_widget(self.cam)
 		general_layout.add_widget(button_layout)
+
+		#port = 3000
+		#self.serv = server.Server(port)
+		#print(self.serv.ready())
+
 		event = Clock.schedule_interval(self.update, 1.)
 		self.robot_pose_old = [[0,0],0]
 		return general_layout
@@ -182,9 +187,14 @@ class CamApp(App):
 		if(robot_pose_new[0] is not False and robot_pose_new[1] is not False):
 			velocity = (robot_pose_new[0][0]-self.robot_pose_old[0][0])/dt
 			angular_velocity = (robot_pose_new[0][1] - self.robot_pose_old[0][1])/dt
-			self.vel_label =  "Velocity: " + str(velocity)
-			self.angle_vel_label =  "Angular Velocity: " +str(angular_velocity)
+			print("Vel: " + str(velocity))
+			print("Ang: " + str(angular_velocity))
+			self.vel_label.text =  "Velocity: " + str(velocity)
+			self.angle_vel_label.text =  "Angular Velocity: " +str(angular_velocity)
 			self.robot_pose_old =  robot_pose_new
+			#self.serv.send([robot_pose_new[0],robot_pose_new[1]])
+
+			#self.serv.send([robot_pose_new[0],robot_pose_new[1]])
 
 
 	def draw_path_btn(self,obj):
@@ -195,6 +205,7 @@ class CamApp(App):
 		global rt_tree
 		obst = []
 		path_done =False
+
 
 		robot = planner.Robot([50,50],75,40)
 		rt_tree = planner.RTR_PLANNER(robot,np.zeros(shape=(480,640)))
@@ -215,12 +226,13 @@ class CamApp(App):
 			print(q_end.x,q_end.y,-self.painter.angle*math.pi/180)
 			q_end.parent = None
 			path = rt_tree.construct(q_root,q_end,obst,50,150)
+
+			#FIXME
+			transform_path = path
+			#self.serv.send(transform_path)
 			print(path)
 			path_done = True
-			#if(is_drawing):
-			#	self.drawbtn.text = 'Stop path drawing'
-			#else:
-			#	self.drawbtn.text = 'Start path drawing'
+
 
 	def obstacles_drawing_mode(self,obj):
 		global is_drawing_obst
@@ -338,6 +350,7 @@ class CamApp(App):
 							Line(points = [self.dest_px[0],self.dest_px[1],touch.x,touch.y])
 						self.angle = coord_to_angle(touch.x,touch.y,self.dest_px[0],self.dest_px[1])
 						dest_label.text ="Destination point: " + str(dest) +"\n" + "Angle: " + str(math.ceil(self.angle*100)/100)
+
 	def on_stop(self):
 		#without this, app will not exit even if the window is closed
 		self.capture.release()
