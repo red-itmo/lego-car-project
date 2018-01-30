@@ -13,18 +13,36 @@ class Mapping:
 		self.yellowLower = (0, 128, 108)
 		self.yellowUpper = (38, 173, 255)
 
+		self.car_angle = 0
+		self.car_coord = 0
+
 		# method gets tuples with x and y coordinates of blue and yellow centers
 	def get_pose(self, blue, yellow):
 			# for calculating the angle of a robot scalar multiplication of vectors is used
 			orient_vector = ( yellow[0] - blue[0], yellow[1] - blue[1] )
 			thetha = np.arccos( 1.0 * orient_vector[0] / np.sqrt( orient_vector[0] ** 2 + orient_vector[1] ** 2 ) )
+			
 			if blue[1] > yellow[1]:
 				thetha = -thetha
+		
 			return ( int(blue[0]), int(blue[1]) ), thetha
 
 	def distance(self, p, q ):
 		d = np.sqrt( (p[0] - q[0])**2 + (p[1] - q[1])**2 )
+		
 		return d
+
+
+	def isPinRectangle(self, r, P):
+
+		areaRectangle = 0.5*abs( (r[0][1]-r[2][1])*(r[3][0]-r[1][0]) + (r[1][1]-r[3][1])*(r[0][0]-r[2][0]) )
+
+		ABP = 0.5*(	r[0][0]*(r[1][1]-r[2][1]) + r[1][0]*(r[2][1]-r[0][1]) + r[2][0]*(r[0][1]-r[1][1]) )
+		BCP = 0.5*( r[1][0]*(r[2][1]-r[3][1]) + r[2][0]*(r[3][1]-r[1][1]) + r[3][0]*(r[1][1]-r[2][1]) )
+		CDP = 0.5*(	r[2][0]*(r[3][1]-r[0][1]) + r[3][0]*(r[0][1]-r[2][1]) + r[0][0]*(r[2][1]-r[3][1]) )
+		DAP = 0.5*(	r[3][0]*(r[0][1]-r[1][1]) + r[0][0]*(r[1][1]-r[3][1]) + r[1][0]*(r[3][1]-r[0][1]) )
+
+		return areaRectangle == (ABP+BCP+CDP+DAP)
 
 
 
@@ -92,9 +110,9 @@ class Mapping:
 					if self.distance( center_blue, center_yellow ) > 70:
 						continue
 
-					coords, angle = self.get_pose( blue_coord, yellow_coord )
+					self.car_coord, self.car_angle = self.get_pose( blue_coord, yellow_coord )
 
-					return coords, angle
+					return self.car_coord, self.car_angle
 			return (False,False)
 		# if less than two contours found, return ( False, False )
 		else:
@@ -124,13 +142,11 @@ class Mapping:
 				obst_coord = cv.minAreaRect( o )
 				obst_coord = cv.boxPoints( obst_coord )
 				obst_coord = np.int0( np.around(obst_coord) )
+
 				first_point = [ obst_coord[0] ]
 				obst_coord = np.concatenate( (obst_coord, first_point ) )
-				line_coord = []
 				for i in range( 0, len(obst_coord) - 1 ):
-					line_coord.append( [ tuple( obst_coord[i] ) , tuple( obst_coord[i+1]) ] )
-				obstacles.append( line_coord )
-
-
+					obstacles.append( [ list( obst_coord[i] ) , list( obst_coord[i+1]) ] )
 
 		return obstacles
+
