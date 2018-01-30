@@ -192,6 +192,7 @@ class CamApp(App):
 			self.vel_label.text =  "Velocity: " + str(velocity)
 			self.angle_vel_label.text =  "Angular Velocity: " +str(angular_velocity)
 			self.robot_pose_old =  robot_pose_new
+			#self.serv.send([robot_pose_new[0],robot_pose_new[1]])
 
 			#self.serv.send([robot_pose_new[0],robot_pose_new[1]])
 
