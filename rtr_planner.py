@@ -4,8 +4,12 @@ import numpy as np
 import cv2
 import utility as util
 import copy
-
+import TrajectoryPlaners as TP
+import Mapping as detect
 random.seed()
+cam_res = (640,480)
+px_to_m = 3.60 / math.hypot(cam_res[0],cam_res[1])
+
 
 class Robot:
 
@@ -17,6 +21,7 @@ class Robot:
 
 
 	def get4pointsofrobot(self,q):
+
 
 		r1 = math.sqrt(math.pow(self.width/4,2)+math.pow(self.height/2,2))
 		r2 = math.sqrt(math.pow(self.width/4,2)+math.pow(self.height/2,2))
@@ -64,6 +69,7 @@ class Robot:
 
 
 		if(not util.inRangeOfImg(points_of_robot,img)):
+			#print("y")
 			return True
 		return Crash
 
@@ -359,30 +365,176 @@ class RTR_PLANNER:
 	def RandomPos(self,dims):
 		return [random.randint(0,dims[0]),random.randint(0,dims[1])]
 
+	def print_path(self,path):
+		print("~~~~~~~~~~~~~~~")
+		for q in path:
+			print(q)
+		print("~~~~~~~~~~~~~~\n")
+
+	def generate_paths(self,path, p_type, obstacles, frame, robot, n_of_samples):
+		paths = []
+		for i in range(n_of_samples):
+			path = TP.TTSPlaner().getTrajectory(TP.Pose(path[0].x, path[0].y, path[0].theta),
+													TP.Pose(path[-1].x, path[-1].y, path[-1].theta),
+														0.2,0.05)
+			paths.append(path)
+		return paths
+
+	def transform_path(self,path, p_type, obstacles, frame, robot):
+		if p_type == "TTS":
+			#print(len(path))
+			if (len(path) < 1):
+				return False
+
+			descr,length,x_y_z = TP.TTSPlaner().getTrajectory(TP.Pose(path[0].x, path[0].y, path[0].theta),
+										TP.Pose(path[-1].x, path[-1].y, path[-1].theta),
+											0.2,0.05)
+			x_y_z = x_y_z[1:]
+			safe = self.check_for_safety(x_y_z, obstacles, frame, robot)
+
+			#print(x_y_z)
+
+			#print(x_y_z)
+		#	print(safe)
+			if (safe):
+				return descr,length,x_y_z
+
+			mid = len(path)//2
+			path_lo = path[0:mid]
+			path_hi = path[mid:]
+			#self.print_path(path)
+			if (not safe):
+				cor_path_lo = self.transform_path(path_lo, p_type, obstacles, frame,robot)
+				cor_path_hi = self.transform_path(path_hi, p_type, obstacles, frame,robot)
+				if(cor_path_lo and cor_path_hi):
+					# print("-----------------")
+					# print(cor_path_hi[1])
+					# print("-----------------\n")
+					# print("-----------------")
+					# print(cor_path_lo[1])
+					# print("-----------------\n")
+
+					if(type(cor_path_hi[1]) is float):
+						a = cor_path_hi[1]
+					else:
+						a = np.asscalar(cor_path_hi[1])
+					if(type(cor_path_lo[1]) is float):
+						b = cor_path_lo[1]
+					else:
+						b = np.asscalar(cor_path_lo[1])
+					cor_path = [np.vstack((cor_path_lo[0],cor_path_hi[0])),
+									a+b,
+										np.vstack((cor_path_lo[2],cor_path_hi[2]))]
+					return cor_path
+
+				return False
+
+	def check_for_safety(self,x_y_z, obstacles, frame, robot):
+
+		for q in x_y_z:
+			#print(q)
+			candidate = self.Tree_root.q([q[0]/px_to_m,q[1]/px_to_m],q[2])
+			if(robot.ifCrash(candidate, obstacles, frame, None, None)):
+				#print(candidate)
+				return False
+		return True
+
+	def path_into_m(self,path):
+		new_path = []
+		for q in path:
+			new_path.append(self.Tree_end.q([q.x*px_to_m,q.y*px_to_m],q.theta))
+		return new_path
+
+	def path_to_px(self,path):
+		new_path = []
+		for q in path:
+			new_path.append(self.Tree_end.q([q[0]/px_to_m,q[1]/px_to_m],q[2]))
+		return new_path
+
+	def find_middle_of_path(self,path):
+		length = 0
+		#edges = []
+		path_lo = []
+		path_ho = []
+		for n in range(len(path)-1):
+			length+=math.hypot(path[n].x-path[n+1].x,path[n].y-path[n+1].y)
+			#edges.append([path[n],path[n+1]])
+		mid = length/2
+		len_f = 0
+		for n in range(len(path)-1):
+			 len_f+=math.hypot(path[n].x-path[n+1].x,path[n].y-path[n+1].y)
+			 if(len_f>=mid):
+	 			if(len_f==mid):
+	 				mid_x_y = [path[n+1].x,path[n+1].y]
+					mid_theta = path[n+1].theta
+				else:
+					dist = -(len_f-mid)
+					angle = math.atan2(path[n].y-path[n+1].y,path[n].x-path[n+1].x)
+					mid_x_y = [path[n].x + dist*math.cos(angle),path[n].y+dist*math.sin(angle)]
+					mid_theta = path[n].theta
+				mid_q = self.Tree_end.q([mid_x_y,mid_theta)
+				path_lo = path[0:n]
+				path_lo.append(mid_q)
+				path_hi.append(mid_q)
+				path_hi.extend(path[n+1:])
+				return path_lo, path_hi
+
+def main():
+	img = cv2.imread("35.png",1)
+	robot_pose=  detect.Mapping().find_car(img)
+	print(robot_pose)
+	#q_root = Tree.q([robot_pose[0][0],robot_pose[0][1]],robot_pose[1])
+	q_root = Tree.q([50,50],0)
+	q_root.parent = None
+	q_end = Tree.q([442,282],-0.0)
+	q_end.parent = None
+	robot = Robot([q_root.x,q_root.y],80,60)
+	rt_tree = RTR_PLANNER(robot,img)
+
+	wall6 = util.build_wall([0,100],[img.shape[:2][1]-300,100],200)
+	wall5 = util.build_wall([img.shape[:2][1],200],[300,200],200)
+	wall7 = util.build_wall([0,300],[img.shape[:2][1]-300,300],200)
+	wall8 = util.build_wall([img.shape[:2][1]-100,350],[img.shape[:2][1]-200,450],200)
+
+	obstacles = [wall6,wall5,wall7]
+	#obstacles = []
+	path1 = rt_tree.construct(q_root,q_end,obstacles,50,200)
+	print(path1)
+
+	img = rt_tree.Tree_root.draw_path(obstacles,path1,rt_tree.Tree_root.img)
+	win_name = "Win1"
+	cv2.namedWindow(win_name)
+	cv2.imshow(win_name,img)
+	cv2.waitKey(0)
+	path1 = rt_tree.path_into_m(path1)
+
+	new_path = rt_tree.transform_path(path1,"TTS",obstacles,img,robot)
+	k = 0
+	while not new_path and k<50:
+		k+=1
+		print(k)
+		new_path = rt_tree.transform_path(path1,"TTS",obstacles,img,robot)
+	print(new_path)
+
+	if(new_path):
+		new_path = rt_tree.path_to_px(new_path[2])
+		new_path1 = new_path
+		# for q in new_path:
+		# 	print(q)
+		# 	new_path1.append(rt_tree.Tree_end.q([q[0],q[1]],q[2]))
+		print(new_path1)
+		img = cv2.imread("35.png",1)
+		img = rt_tree.Tree_root.draw_path(obstacles,new_path1,img)
+		win_name = "Win1"
+		cv2.namedWindow(win_name)
+		cv2.imshow(win_name,img)
+		cv2.waitKey(0)
+		print("-------------")
+		print(new_path)
+		print("-------------")
 
 
 
-# def main():
-# 	img = cv2.imread("35.png",1)
-# 	robot_pose=  detect.Car_detection().find_car(img)
-# 	print(robot_pose)
-# 	q_root = Tree.q([100,100],0)
-# 	q_root.parent = None
-# 	q_end = Tree.q([442,282],-0.0)
-# 	q_end.parent = None
-# 	robot = Robot([q_root.x,q_root.y],80,60)
-# 	rt_tree = RTR_PLANNER(robot,img)
 
-# 	# wall6 = util.build_wall([0,100],[img.shape[:2][1]-300,100],200)
-# 	# wall5 = util.build_wall([img.shape[:2][1],200],[300,200],200)
-# 	# wall7 = util.build_wall([0,300],[img.shape[:2][1]-300,300],200)
-# 	#wall8 = util.build_wall([img.shape[:2][1]-100,350],[img.shape[:2][1]-200,450],200)
-
-# 	#obstacles = [wall6,wall5,wall7]
-# 	obstacles = []
-# 	path1 = rt_tree.construct(q_root,q_end,obstacles,50,200)
-# 	print(path1)
-
-
-# if __name__ == '__main__':
-# 	main()
+if __name__ == '__main__':
+	main()
