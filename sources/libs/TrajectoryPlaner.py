@@ -14,7 +14,7 @@ alpha_max = sigma_max / v_min
 
 
 class EESPlaner:
-    def getTrajectory(self, start_pose, goal_pose, v_des, reverse=False):
+    def getTrajectory(self, start_pose, goal_pose, v_des, step, reverse=False):
         if reverse:
             init_pose = goal_pose
             goal_pose = start_pose
@@ -22,7 +22,7 @@ class EESPlaner:
             init_pose = start_pose
 
         pose = np.zeros(shape=(3,3))
-        pose[0:] = transformCoords(goal_pose, np.array([[init_pose.point.x, init_pose.point.y, init_pose.angle]]), 'b')
+        pose[0,:] = transformCoords(goal_pose, np.array([[init_pose.point.x, init_pose.point.y, init_pose.angle]]), 'b')
 
         if pose[0,2] > pi:
             pose[0,2] = pose[0,2] - 2 * pi
@@ -62,7 +62,7 @@ class EESPlaner:
 
             delta[1,0] = -delta[0,0] - 0.5 * theta_1
 
-            k[1,0] = B(-2 * delta[1,0]) / (D([2 * delta[0,0]], theta_1) / k[0,0] - x1)
+            k[1,0] = B(-2 * delta[1,0]) / (D([2 * delta[0,0]], theta_1) / k[0,0] + y1)
 
             pose[2,0] = -(A(-2 * delta[1,0]) / k[1,0] - C([2 * delta[0,0]], theta_1) / k[0,0] - x1)
             gamma = np.ndarray(shape=(3, 1))
@@ -91,24 +91,39 @@ class EESPlaner:
         length = 2 * sum(s_end) - s_end[2,0]
 
         if reverse:
+            aux_pose = Pose(0.0, 0.0, 0.0)
             descr = []
-            descr.append(["StraightLine", Pose(0, 0, 0), Pose(pose[2,0], pose[2, 1], pose[2, 2]), s_end[2,0], v_des])
-            for i in range(0, 2):
-                descr.append(["ClothoidLine", -gamma[i], alpha[i], s_end[i], 'in', v[i]])
-                descr.append(["ClothoidLine", -gamma[i], -alpha[i], s_end[i], 'out', v[i]])
+            descr.append(["StraightLine", np.array([[0.0, 0.0, 0.0]]), np.array([pose[2]]), s_end[2,0], v_des])
+            for i in range(1, -1, -1):
+                descr.append(["ClothoidLine", np.array([[0, 0, 0]]), -gamma[i], -alpha[i], s_end[i], 'in', v[i]])
+                descr.append(["ClothoidLine", np.array([[0, 0, 0]]), -gamma[i], alpha[i], s_end[i], 'out', v[i]])
         else:
+            aux_pose = Pose(pose[0, 0], pose[0, 1], pose[0, 2])
             descr = []
             for i in range(0, 2):
-                descr.append(["ClothoidLine", gamma[i], alpha[i], s_end[i], 'in', v[i]])
-                descr.append(["ClothoidLine", gamma[i], -alpha[i], s_end[i], 'out', v[i]])
-            descr.append(["StraightLine", Pose(0, 0, 0), Pose(pose[2,0], pose[2, 1], pose[2, 2]), s_end[2, 0], v_des])
+                descr.append(["ClothoidLine", np.array([[0, 0, 0]]), gamma[i], alpha[i], s_end[i], 'in', v[i]])
+                descr.append(["ClothoidLine", np.array([[0, 0, 0]]), gamma[i], -alpha[i], s_end[i], 'out', v[i]])
+            descr.append(["StraightLine", np.array([pose[2]]), np.array([[0.0, 0.0, 0.0]]), s_end[2, 0], v_des])
 
-        aux_pose = Pose(pose[0,0], pose[0, 1], pose[0,2])
-        robot_poses = []
+        robot_poses = np.ndarray(shape=(1,3))
         for i in range(0,5):
-            poses = calcPathElementPoints(descr[i], aux_pose, 0.05)
-            aux_pose = Pose(poses[-1,0], pose[-1, 1], pose[-1, 2])
+            poses = calcPathElementPoints(descr[i], aux_pose, step)
+
+            if descr[i][0] == "ClothoidLine":
+                descr[i][1] = transformCoords(goal_pose, transformCoords(aux_pose, descr[i][1]));
+            elif descr[i][0] == "StraightLine":
+                descr[i][1] = transformCoords(goal_pose, transformCoords(aux_pose, descr[i][1]));
+                descr[i][2] = transformCoords(goal_pose, transformCoords(aux_pose, descr[i][2]));
+
+            aux_pose = Pose(poses[-1, 0], poses[-1, 1], poses[-1, 2])
             add_poses = transformCoords(goal_pose, poses)
-            robot_poses.append(add_poses)
+            robot_poses = np.vstack((robot_poses, add_poses))
+
+            # for debugging purposes; may be deleted later
+            np.savetxt("/home/evgeniy/Desktop/test" + str(i) + ".txt", add_poses, fmt='%.5f')
 
         return descr, length, robot_poses
+
+# for debugging purposes; may be deleted later
+if __name__=="__main__":
+    X, Y, Z = EESPlaner().getTrajectory(Pose(-2, 2, -1), Pose(2, 1, 0), 0.2, 0.05, True)

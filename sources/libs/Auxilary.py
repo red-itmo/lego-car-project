@@ -165,22 +165,24 @@ def D(b, psi):
 ########################################################################################################################
 
 def calcClothoidPoints(gamma, alpha, s_end, type, step):
-    step = 0.05 * s_end
-    poses = np.ndarray(shape=(int(s_end // step) + 1, 3))
+    poses = np.ndarray(shape=(int(s_end // step) + 2, 3))
     if (type == "in"):
         i = 0
         for s in np.arange(0, s_end, step):
             poses[i] = np.array([xCoord(gamma, alpha, s), yCoord(gamma, alpha, s), 0.5 * alpha * pow(s, 2)]).reshape((3))
             i += 1
+        poses[i] = np.array([xCoord(gamma, alpha, s_end), yCoord(gamma, alpha, s_end), 0.5 * alpha * pow(s_end, 2)]).reshape((3))
     else:
 
-        origin_pose = Pose(xCoord(gamma, alpha, s_end), yCoord(-gamma, alpha, s_end), 0.5 * alpha * pow(s_end, 2))
+        origin_pose = Pose(xCoord(-gamma, alpha, s_end), yCoord(-gamma, alpha, s_end), 0.5 * alpha * pow(s_end, 2))
         i = 0
         for s in np.arange(0, s_end, step):
-            aux_pose = np.array([xCoord(gamma, alpha, s_end - s), yCoord(-gamma, alpha, s_end - s),
+            aux_pose = np.array([xCoord(-gamma, alpha, s_end - s), yCoord(-gamma, alpha, s_end - s),
                         0.5 * alpha * pow(s_end - s, 2)]).reshape((1, 3))
             poses[i] = transformCoords(origin_pose, aux_pose, 'b')
             i += 1
+        aux_pose = np.array([xCoord(-gamma, alpha, 0.0), yCoord(-gamma, alpha, 0.0), 0.0]).reshape((1, 3))
+        poses[i] = transformCoords(origin_pose, aux_pose, 'b')
     return poses
 
 
@@ -194,12 +196,13 @@ def calcArcPoints(delta, k, step):
 
 
 def calcStraightLinePoints(pose_0, pose_1, s_end, step):
-    alpha = atan2(pose_1.point.y - pose_0.point.x, pose_1.point.x - pose_0.point.x)
+    alpha = atan2(pose_1[0][1] - pose_0[0][1], pose_1[0][0] - pose_0[0][0])
     i = 0
-    poses = np.ndarray(shape=(int(s_end // step) + 1, 3))
+    poses = np.ndarray(shape=(int(s_end // step) + 2, 3))
     for s in np.arange(0, s_end, step):
-        poses[i] = [s * cos(alpha), s * sin(alpha), pose_0.angle]
+        poses[i] = [s * cos(alpha), s * sin(alpha), pose_0[0][2]]
         i += 1
+    poses[i] = [s_end * cos(alpha), s_end * sin(alpha), pose_0[0][2]]
     return poses
 
 
@@ -208,21 +211,21 @@ def transformCoords(origin_pose=None, old_poses=None, direction=None):
          [sin(origin_pose.angle), cos(origin_pose.angle), origin_pose.point.y],
          [0, 0, 1]])
     new_poses = np.ndarray(shape=(old_poses.shape[0], 3))
-    if origin_pose is not None and old_poses is not None and direction == "b":
+    if direction == "b":
         T = np.linalg.inv(T)
         new_poses[:, 2] = old_poses[:, 2] - origin_pose.angle
     else:
         new_poses[:, 2] = old_poses[:, 2] + origin_pose.angle
 
     aux_poses = T.dot(np.vstack([old_poses[:, 0:2].T, (np.ones(shape=(old_poses[:,0].T.shape)))]))
-    new_poses[:, 0:1] = aux_poses[0:1, :].T
+    new_poses[:, 0:2] = aux_poses[0:2, :].T
 
     return new_poses
 
 
 def calcPathElementPoints(element, start_pose, step):
     if element[0] == "ClothoidLine":
-        aux_poses = calcClothoidPoints(element[1], element[2], element[3], element[4], step)
+        aux_poses = calcClothoidPoints(element[2], element[3], element[4], element[5], step)
     elif element[0] == "StraightLine":
         aux_poses = calcStraightLinePoints(element[1], element[2], element[3], step)
 
