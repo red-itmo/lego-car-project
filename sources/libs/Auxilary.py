@@ -138,7 +138,7 @@ def A(b1, b2=None):
     if b2 is None:
         return X(b1) * (1 + cos(b1)) + Y(b1) * sin(b1)
     else:
-        return X(b1) * sin(1 + cos(b1 + b2)) + Y(b1) * sin(b1 + b2) + sin(0.5 * b1 + b2) - sin(0.5 * b1)
+        return X(b1) * (1 + cos(b1 + b2)) + Y(b1) * sin(b1 + b2) + sin(0.5 * b1 + b2) - sin(0.5 * b1)
 
 
 def B(b1, b2=None):
@@ -186,12 +186,15 @@ def calcClothoidPoints(gamma, alpha, s_end, type, step):
     return poses
 
 
-def calcArcPoints(delta, k, step):
+def calcArcPoints(point_c, point_0, point_1, step):
+    k = 1 / point_c[0][1];
+    delta = point_1[0][2];
     i = 0
-    poses = np.ndarray(shape=(int(delta // step) + 1, 3))
-    for d in np.arange(0, delta, step):
+    poses = np.ndarray(shape=(int(abs(delta) // abs(step*k)) + 2, 3))
+    for d in np.arange(0, delta, copysign(1, delta)*abs(step*k)):
         poses[i] = [sin(d) / k, (1 - cos(d)) / k, d]
         i += 1
+    poses[i] = [sin(delta) / k, (1 - cos(delta)) / k, delta]
     return poses
 
 
@@ -228,5 +231,7 @@ def calcPathElementPoints(element, start_pose, step):
         aux_poses = calcClothoidPoints(element[2], element[3], element[4], element[5], step)
     elif element[0] == "StraightLine":
         aux_poses = calcStraightLinePoints(element[1], element[2], element[3], step)
+    elif element[0] == "CircleLine":
+        aux_poses = calcArcPoints(element[1], element[2], element[3], step)
 
     return transformCoords(start_pose, aux_poses)
