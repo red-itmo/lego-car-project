@@ -162,6 +162,9 @@ def D(b, psi):
         return A(b[0], b[1]) * sin(psi) + B(b[0], b[1]) * cos(psi)
 
 
+def G(b, psi):
+    return B(b + psi) + D([b], psi)
+
 ########################################################################################################################
 
 def calcClothoidPoints(gamma, alpha, s_end, type, step):
