@@ -124,7 +124,7 @@ class Mapping:
 	def get_map(self, frame):
 		def inObst(point,obs_point):
 				d = math.sqrt(math.pow((point[0]-obs_point[0]),2)+math.pow((point[1]-obs_point[1]),2))
-				return d<30
+				return d<50
 
 		# Convert image into grayscale
 		gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
