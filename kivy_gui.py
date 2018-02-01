@@ -20,8 +20,8 @@ import cv2 as cv
 import time
 import rtr_planner as planner
 import Mapping as mapping
-import Client as client
-import Server as server
+import Socket.Client as client
+import Socket.Server as server
 
 # cam res 640 480
 WINH = 600
@@ -59,7 +59,7 @@ class KivyCamera(Image):
 		if ret:
 			# convert it to texture
 			if (path_done):
-				buf1 = cv.flip(self.draw_path(self.clear_distort(self.frame)), 0)
+				buf1 = cv.flip(self.draw_path(self.clear_distort(self.frame),True), 0)
 			else:
 				buf1 = cv.flip(self.clear_distort(self.frame), 0)
 			buf = buf1.tostring()
@@ -70,19 +70,19 @@ class KivyCamera(Image):
 
 			self.texture = image_texture
 
-	def draw_path(self, img):
+	def draw_path(self, img, mode):
 		# print("im here")
 		global path_done
 		global path
 		global rt_tree
 
-		if (path is None):
+		if (path is None or path is False):
 			font = cv.FONT_HERSHEY_SIMPLEX
 			cv.putText(img, "Path not found", (30, 30), font, 1, (0, 0, 255), 2, cv.LINE_AA)
 			return img
 
 		if (path_done):
-			return rt_tree.Tree_root.draw_path([], path, img)
+			return rt_tree.Tree_root.draw_path([], path, img,mode)
 		else:
 			return img
 
@@ -228,16 +228,7 @@ class CamApp(App):
 		elif (type(dest) is str):
 			print("enter dest point first!")
 		else:
-			self.send = False
-			while not self.serv.send([[robot_pose[0][0] * px_to_m, robot_pose[0][1] * px_to_m, -robot_pose[1]], [[robot_pose[0][0] * px_to_m, robot_pose[0][1] * px_to_m], [350 * px_to_m + robot_pose[0][0] * px_to_m, robot_pose[0][1] * px_to_m ] , 0.1]]):
-				self.serv.send([[robot_pose[0][0] * px_to_m, robot_pose[0][1] * px_to_m, -robot_pose[1]],
-								[[robot_pose[0][0] * px_to_m, robot_pose[0][1] * px_to_m],
-								 [350 * px_to_m + robot_pose[0][0] * px_to_m, robot_pose[0][1] * px_to_m], 0.1]])
 
-			#while not self.serv.send([ [ robot_pose[0][0] * px_to_m, robot_pose[0][1] * px_to_m ], [ 336 * px_to_m, 421 * px_to_m ], -0.1 ]):
-			#	self.serv.send([[robot_pose[0][0] * px_to_m, robot_pose[0][1] * px_to_m], [336 * px_to_m, 421 * px_to_m], -0.1])
-
-			self.send = True
 			is_drawing = not is_drawing
 			q_root = planner.Tree.q(robot_pose[0], robot_pose[1])
 			q_root.parent = None
@@ -248,8 +239,21 @@ class CamApp(App):
 			q_end.parent = None
 			path = rt_tree.construct(q_root, q_end, obst, 50, 50)
 
-			# FIXME
-			transform_path = path
+			
+			path = rt_tree.path_into_m(path)
+
+			transformed_path = rt_tree.transform_path(path,"TTS",obst,img,robot,5,False)
+
+			if(transformed_path):
+				path = rt_tree.path_to_px(transformed_path[2])
+				descr = transformed_path[0]
+				self.send = False
+				while not self.serv.send([[robot_pose[0][0] * px_to_m, robot_pose[0][1] * px_to_m, -robot_pose[1]],descr):
+					self.serv.send([[robot_pose[0][0] * px_to_m, robot_pose[0][1] * px_to_m, -robot_pose[1]],
+										descr)
+				self.send = True
+			else:
+				path = False
 
 			print(path)
 			path_done = True

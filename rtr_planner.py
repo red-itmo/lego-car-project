@@ -49,9 +49,7 @@ class Robot:
 		points_of_robot = self.get4pointsofrobot(q)
 		Crash = False
 		turn_radius = math.sqrt(2)*self.height/2
-		#turn_radius = 5
 		if(primitive == "translate" and direction=="forward"):
-			#print(points_of_robot[3])
 			points_of_robot[3] =[points_of_robot[3][0]+turn_radius*math.cos(q.theta),points_of_robot[3][1]+turn_radius*math.sin(q.theta)]
 			points_of_robot[2] =[points_of_robot[2][0]+turn_radius*math.cos(q.theta),points_of_robot[2][1]+turn_radius*math.sin(q.theta)]
 		if(primitive == "translate" and direction=="backward"):
@@ -69,7 +67,7 @@ class Robot:
 
 
 		if(not util.inRangeOfImg(points_of_robot,img)):
-			#print("y")
+
 			return True
 		return Crash
 
@@ -197,8 +195,6 @@ class Tree:
 
 			else:
 				candidate_q = util.ClosestPoint(edge[0],edge[1].q_end,self.q(new_vertex,0))
-			#print("new vertex: " + str(type(new_vertex)))
-			#print("cand: " + str(type(candidate_q)))
 			candidate_dist = math.hypot(new_vertex[0] - candidate_q[0],new_vertex[1]-candidate_q[1])
 			if min_dist == None or candidate_dist < min_dist:
 				true_edge = edge
@@ -236,17 +232,19 @@ class Tree:
 		cv2.line(img,(int(p_for_line[0][0]),int(p_for_line[0][1])),(int(p_for_line[-1][0]),int(p_for_line[-1][1])),color)
 		return img
 
-	def draw_path(self,obstacles,path,img):
-		#img = self.img
+	def draw_path(self,obstacles,path,img, mode):
 		for obstacle in obstacles:
 			for i in range(len(obstacle)-1):
 				cv2.line(img,(obstacle[i][0],obstacle[i][1]),(obstacle[i+1][0],obstacle[i+1][1]),(0,255,0))
 		for n in range(len(path)-1):
+			if(math.isnan(path[n].x) or math.isnan(path[n].y) or math.isnan(path[n].theta) or math.isnan(path[n+1].x) or math.isnan(path[n+1].y) or math.isnan(path[n+1].theta)):
+				continue
 			cv2.line(img,(math.ceil(path[n].x),math.ceil(path[n].y)),(math.ceil(path[n+1].x),math.ceil(path[n+1].y)),(255,0,0))
 			font = cv2.FONT_HERSHEY_SIMPLEX
-			#cv2.putText(img,str(n),(int(path[n].x),int(path[n].y)), font, 1,(255,255,255),2,cv2.LINE_AA)
-			#if(path[n+1].theta == path[n].theta):
-			self.draw_robot(img,path[n],(0,0,255))
+			if(mode):
+				self.draw_robot(img,path[n],(0,0,255))
+			#else:
+				#self.draw_robot(img,path[n],(0,0,255))
 		self.draw_robot(img,path[-1],(0,0,255))
 		return img
 
@@ -277,19 +275,9 @@ class RTR_PLANNER:
 			n,goal_achieved = self.checkGoal(self.Tree_root.edges[-1],self.Tree_end.edges,obstacles)
 
 			if(goal_achieved):
-
 				path = self.getpath(q_init,self.Tree_root.edges[-1],q_end,self.Tree_end.edges[n])
-				#self.Tree_root.draw_path(obstacles,path)
-				# path = self.correct_angles_in_path(path)
-				# img = self.Tree_root.draw_path(obstacles,path,self.Tree_root.img)
-				# win_name = "Win1"
-				# cv2.namedWindow(win_name)
-				# cv2.imshow(win_name,img)
-				# cv2.waitKey(0)
 				print("Number of iterations: " + str(k))
 				return path
-		#self.Tree_root.draw_all(obstacles,(255,0,0))
-		#self.Tree_end.draw_all(obstacles,(255,255,255))
 
 		return None
 
@@ -327,7 +315,6 @@ class RTR_PLANNER:
 		intersection = util.line_intersection([[edge_init[0].x,edge_init[0].y],[edge_init[1].q_end.x,edge_init[1].q_end.y]],
 												[[edge_end[0].x,edge_end[0].y],[edge_end[1].q_end.x,edge_end[1].q_end.y]])
 		path1.append(Tree.q(intersection,path1[-1].theta))
-		#path2 = path2[::-1]
 		path1.extend(path2)
 
 		return path1
@@ -346,10 +333,8 @@ class RTR_PLANNER:
 			if(n==0):
 				correct_path.append(path[0])
 				continue
-			#if(path[n+1].theta == path[n].theta):
 			correct_path.append(Tree.q([path[n].x,path[n].y],path[n].theta + self.MinTurndirection(path[n],[path[n+1].x,path[n+1].y])))
 		correct_path.append(Tree.q([path[-1].x,path[-1].y],path[-1].theta))
-		#print(correct_path)
 		return correct_path
 
 	def MinTurndirection(self,q_nearest,random_point):
@@ -371,71 +356,90 @@ class RTR_PLANNER:
 			print(q)
 		print("~~~~~~~~~~~~~~\n")
 
-	def generate_paths(self,path, p_type, obstacles, frame, robot, n_of_samples):
+	def generate_paths(self,true_path, p_type, n_of_samples,reverse=False):
 		paths = []
-		for i in range(n_of_samples):
-			path = TP.TTSPlaner().getTrajectory(TP.Pose(path[0].x, path[0].y, path[0].theta),
-													TP.Pose(path[-1].x, path[-1].y, path[-1].theta),
-														0.2,0.05)
+		for i in range(n_of_samples-1):
+			path = TP.TTSPlaner().getTrajectory(TP.Pose(true_path[0].x, true_path[0].y, true_path[0].theta),
+													TP.Pose(true_path[-1].x, true_path[-1].y, true_path[-1].theta),
+														0.2,0.05, reverse)
 			paths.append(path)
+		#print(true_path[0].x, true_path[0].y, true_path[0].theta)
+		#print(true_path[-1].x, true_path[-1].y, true_path[-1].theta)
+
+		paths.append(TP.eeS_Planer().getTrajectory(TP.Pose(true_path[0].x, true_path[0].y, true_path[0].theta),
+												TP.Pose(true_path[-1].x, true_path[-1].y, true_path[-1].theta),
+													0.2,0.05, reverse))
+		paths = self.into_q(paths)
 		return paths
 
-	def transform_path(self,path, p_type, obstacles, frame, robot):
-		if p_type == "TTS":
-			#print(len(path))
-			if (len(path) < 1):
+	def into_q(self,paths):
+		new_path = []
+		for path in paths:
+			temp = [path[0],path[1]]
+			temp_path = []
+			for q in path[2][1:]:
+				temp_path.append(self.Tree_end.q([q[0],q[1]],q[2]))
+			temp.append(temp_path)
+			new_path.append(temp)
+		return new_path
+
+	def get_path_len(self,path):
+		length = 0
+		for n in range(len(path)-1):
+			length+=math.hypot(path[n].x-path[n+1].x,path[n].y-path[n+1].y)
+		return length
+
+	def transform_path(self,true_path, p_type, obstacles, frame, robot, n_of_samples, reverse = False):
+		paths = self.generate_paths(true_path,p_type, n_of_samples,reverse)
+		min_path = None
+		min_path_dist = 10000000
+		exist = False
+		for path in paths:
+			safe = self.check_for_safety(path[2],obstacles,frame,robot)
+			if(safe):
+				cand_dist = np.asscalar(path[1])
+				if(cand_dist < min_path_dist):
+					mim_path_dist = cand_dist
+					min_path = path
+					exist = True
+
+		if(exist):
+			return min_path
+
+		else:
+			if(self.get_path_len(true_path)<0.1):
+				return False
+			mid_paths = self.find_middle_of_path(true_path)
+
+			path_lo = mid_paths[0]
+			path_hi = mid_paths[1]
+			cor_path_lo = self.transform_path(path_lo,p_type,obstacles,frame,robot,n_of_samples)
+			cor_path_hi = self.transform_path(path_hi,p_type,obstacles,frame,robot,n_of_samples)
+			if(cor_path_lo and cor_path_hi):
+				return self.concat_paths(cor_path_lo,cor_path_hi)
+			else:
 				return False
 
-			descr,length,x_y_z = TP.TTSPlaner().getTrajectory(TP.Pose(path[0].x, path[0].y, path[0].theta),
-										TP.Pose(path[-1].x, path[-1].y, path[-1].theta),
-											0.2,0.05)
-			x_y_z = x_y_z[1:]
-			safe = self.check_for_safety(x_y_z, obstacles, frame, robot)
-
-			#print(x_y_z)
-
-			#print(x_y_z)
-		#	print(safe)
-			if (safe):
-				return descr,length,x_y_z
-
-			mid = len(path)//2
-			path_lo = path[0:mid]
-			path_hi = path[mid:]
-			#self.print_path(path)
-			if (not safe):
-				cor_path_lo = self.transform_path(path_lo, p_type, obstacles, frame,robot)
-				cor_path_hi = self.transform_path(path_hi, p_type, obstacles, frame,robot)
-				if(cor_path_lo and cor_path_hi):
-					# print("-----------------")
-					# print(cor_path_hi[1])
-					# print("-----------------\n")
-					# print("-----------------")
-					# print(cor_path_lo[1])
-					# print("-----------------\n")
-
-					if(type(cor_path_hi[1]) is float):
-						a = cor_path_hi[1]
-					else:
-						a = np.asscalar(cor_path_hi[1])
-					if(type(cor_path_lo[1]) is float):
-						b = cor_path_lo[1]
-					else:
-						b = np.asscalar(cor_path_lo[1])
-					cor_path = [np.vstack((cor_path_lo[0],cor_path_hi[0])),
-									a+b,
-										np.vstack((cor_path_lo[2],cor_path_hi[2]))]
-					return cor_path
-
-				return False
+	def concat_paths(self,cor_path_lo,cor_path_hi):
+		if(type(cor_path_hi[1]) is float):
+			a = cor_path_hi[1]
+		else:
+			a = np.asscalar(cor_path_hi[1])
+		if(type(cor_path_lo[1]) is float):
+			b = cor_path_lo[1]
+		else:
+			b = np.asscalar(cor_path_lo[1])
+		path = cor_path_lo[2]+cor_path_hi[2]
+		cor_path = [cor_path_lo[0]+cor_path_hi[0],
+						a+b,
+							path]
+		return cor_path
 
 	def check_for_safety(self,x_y_z, obstacles, frame, robot):
 
 		for q in x_y_z:
-			#print(q)
-			candidate = self.Tree_root.q([q[0]/px_to_m,q[1]/px_to_m],q[2])
+			candidate = self.Tree_end.q([q.x/px_to_m,q.y/px_to_m],q.theta)
 			if(robot.ifCrash(candidate, obstacles, frame, None, None)):
-				#print(candidate)
 				return False
 		return True
 
@@ -448,58 +452,54 @@ class RTR_PLANNER:
 	def path_to_px(self,path):
 		new_path = []
 		for q in path:
-			new_path.append(self.Tree_end.q([q[0]/px_to_m,q[1]/px_to_m],q[2]))
+			new_path.append(self.Tree_end.q([q.x/px_to_m,q.y/px_to_m],q.theta))
 		return new_path
 
 	def find_middle_of_path(self,path):
 		length = 0
-		#edges = []
 		path_lo = []
 		path_ho = []
 		for n in range(len(path)-1):
 			length+=math.hypot(path[n].x-path[n+1].x,path[n].y-path[n+1].y)
-			#edges.append([path[n],path[n+1]])
 		mid = length/2
 		len_f = 0
 		for n in range(len(path)-1):
-			 len_f+=math.hypot(path[n].x-path[n+1].x,path[n].y-path[n+1].y)
-			 if(len_f>=mid):
-	 			if(len_f==mid):
-	 				mid_x_y = [path[n+1].x,path[n+1].y]
+			len_f+=math.hypot(path[n].x-path[n+1].x,path[n].y-path[n+1].y)
+			if(len_f>=mid):
+				if(len_f==mid):
+					mid_x_y = [path[n+1].x,path[n+1].y]
 					mid_theta = path[n+1].theta
 				else:
-					dist = -(len_f-mid)
-					angle = math.atan2(path[n].y-path[n+1].y,path[n].x-path[n+1].x)
+					dist = (-len_f+math.hypot(path[n].x-path[n+1].x,path[n].y-path[n+1].y)+mid)
+					angle = math.atan2(-path[n].y+path[n+1].y,-path[n].x+path[n+1].x)
 					mid_x_y = [path[n].x + dist*math.cos(angle),path[n].y+dist*math.sin(angle)]
-					mid_theta = path[n].theta
-				mid_q = self.Tree_end.q([mid_x_y,mid_theta)
-				path_lo = path[0:n]
+					mid_theta = path[n+1].theta
+				mid_q = self.Tree_end.q(mid_x_y,mid_theta)
+				path_lo = path[0:n+1]
 				path_lo.append(mid_q)
+				path_hi = []
 				path_hi.append(mid_q)
 				path_hi.extend(path[n+1:])
-				return path_lo, path_hi
+				return path_lo,path_hi
 
 def main():
 	img = cv2.imread("35.png",1)
 	robot_pose=  detect.Mapping().find_car(img)
-	print(robot_pose)
-	#q_root = Tree.q([robot_pose[0][0],robot_pose[0][1]],robot_pose[1])
 	q_root = Tree.q([50,50],0)
 	q_root.parent = None
-	q_end = Tree.q([442,282],-0.0)
+	q_end = Tree.q([500,350],-0.0)
 	q_end.parent = None
 	robot = Robot([q_root.x,q_root.y],80,60)
 	rt_tree = RTR_PLANNER(robot,img)
 
 	wall6 = util.build_wall([0,100],[img.shape[:2][1]-300,100],200)
-	wall5 = util.build_wall([img.shape[:2][1],200],[300,200],200)
-	wall7 = util.build_wall([0,300],[img.shape[:2][1]-300,300],200)
-	wall8 = util.build_wall([img.shape[:2][1]-100,350],[img.shape[:2][1]-200,450],200)
+	wall5 = util.build_wall([img.shape[:2][1],250],[300,250],200)
+	wall7 = util.build_wall([0,350],[img.shape[:2][1]-300,350],200)
 
-	obstacles = [wall6,wall5,wall7]
-	#obstacles = []
+
+	#obstacles = [wall6,wall5,wall7]
+	obstacles = []
 	path1 = rt_tree.construct(q_root,q_end,obstacles,50,200)
-	print(path1)
 
 	img = rt_tree.Tree_root.draw_path(obstacles,path1,rt_tree.Tree_root.img)
 	win_name = "Win1"
@@ -507,32 +507,32 @@ def main():
 	cv2.imshow(win_name,img)
 	cv2.waitKey(0)
 	path1 = rt_tree.path_into_m(path1)
+	new_path = rt_tree.transform_path(path1,"TTS",obstacles,img,robot,5,False)
+	#print(new_path)
 
-	new_path = rt_tree.transform_path(path1,"TTS",obstacles,img,robot)
-	k = 0
-	while not new_path and k<50:
-		k+=1
-		print(k)
-		new_path = rt_tree.transform_path(path1,"TTS",obstacles,img,robot)
-	print(new_path)
-
-	if(new_path):
+	if(new_path ):
+		descr = new_path[0]
+		print(descr)
 		new_path = rt_tree.path_to_px(new_path[2])
-		new_path1 = new_path
+		#print(new_path)
+		#new_path1 = new_path
+		#for q in new_path:
+			#print(q)
 		# for q in new_path:
 		# 	print(q)
 		# 	new_path1.append(rt_tree.Tree_end.q([q[0],q[1]],q[2]))
-		print(new_path1)
+		#print(new_path1)
 		img = cv2.imread("35.png",1)
-		img = rt_tree.Tree_root.draw_path(obstacles,new_path1,img)
+		img = rt_tree.Tree_root.draw_path(obstacles,new_path,img)
 		win_name = "Win1"
 		cv2.namedWindow(win_name)
 		cv2.imshow(win_name,img)
 		cv2.waitKey(0)
-		print("-------------")
-		print(new_path)
-		print("-------------")
-
+		#print("-------------")
+		#print(new_path)
+		#print("-------------")
+	else:
+		print("Path not found")
 
 
 
