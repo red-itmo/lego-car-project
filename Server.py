@@ -51,6 +51,5 @@ class Server:
                 return True
             else:
                 return False
-
         else:
             return False
