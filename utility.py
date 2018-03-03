@@ -1,4 +1,16 @@
 import math
+
+def areOn1Line(x1, y1, x2, y2, x3, y3):
+	if (x2 - x1 == 0 or y2 - y1 == 0):
+		return True
+	return ((x3 - x1) / (x2 - x1) == (y3 - y1) / (y2 - y1))
+
+def coord_to_angle(x1, y1, x2, y2):
+	return math.atan2(y1 - y2, x1 - x2) / math.pi * 180
+
+def rasst(x1, y1, x2, y2):
+	return math.sqrt(math.pow(x1 - x2, 2) + math.pow(y1 - y2, 2))
+
 def isInGoalCircle(point,goal):
 	d = math.sqrt(math.pow((point.position[0]-goal[0]),2)+math.pow((point.position[1]-goal[1]),2))
 	return d<20
@@ -8,7 +20,7 @@ def isInObstCircle(point,obs_point):
 	return d<40
 
 def onSegment(p,q,r):
-	if(q[0]<=max(p[0],r[0]) and q[0]>=min(p[0],r[0]) 
+	if(q[0]<=max(p[0],r[0]) and q[0]>=min(p[0],r[0])
 			and q[1]<=max(p[1],r[1]) and q[1]>=min(p[1],r[1])):
 		return True
 	return False
@@ -101,9 +113,9 @@ def ClosestPoint(A,B,P):
 		t = sigmoid(atp_dot_atb/atb2)
 
 		return [A.x+a_to_b[0]*t,A.y+a_to_b[1]*t]
-	
+
 	a_to_p = [P.x - A.x,P.y-A.y]
-	a_to_b = [B.x - A.x,B.y-A.y]	
+	a_to_b = [B.x - A.x,B.y-A.y]
 	b_to_a = [A.x-B.x,A.y-B.x]
 	b_to_p = [P.x-B.x,P.y-B.y]
 

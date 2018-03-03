@@ -1,6 +1,5 @@
 import cv2 as cv
 import numpy as np
-import utility as util
 import math
 
 class Mapping:

@@ -23,7 +23,7 @@ class Client:
         if not data:
             return False
         else:
-            self.s.send(str.encode(str(1)))
+            self.s.send(dumps(str(1)))
             return data
 
 
