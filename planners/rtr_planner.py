@@ -289,30 +289,31 @@ class RTR_PLANNER:
 
 		return None
 
-	#TODO
-	def checkGoal(self,edge_init,edges_end,obstacles):
+
+	def checkGoal(self, edge_init, edges_end, obstacles):
 		for n in range(len(edges_end)):
 			if(type(edges_end[n][1]) is Tree.RCI or type(edge_init[1]) is Tree.RCI):
 				continue
-			if(util.doIntersect([edge_init[1].q_begin.x,edge_init[1].q_begin.y],[edge_init[1].q_end.x,edge_init[1].q_end.y],
-									[edges_end[n][1].q_begin.x,edges_end[n][1].q_begin.y],[edges_end[n][1].q_end.x,edges_end[n][1].q_end.y])):
-				intersection = util.line_intersection([[edge_init[0].x,edge_init[0].y],[edge_init[1].q_end.x,edge_init[1].q_end.y]],
-													[[edges_end[n][0].x,edges_end[n][0].y],[edges_end[n][1].q_end.x,edges_end[n][1].q_end.y]])
-				q_inter = Tree.q(intersection,edge_init[1].q_end.theta)
-				angle = self.MinTurndirection(q_inter,[edges_end[n][1].q_end.x,edges_end[n][1].q_end.y])
-				_,collision = self.Tree_root.RCIExtend(q_inter,angle,obstacles)
+			if(util.doIntersect([edge_init[1].q_begin.x, edge_init[1].q_begin.y], [edge_init[1].q_end.x, edge_init[1].q_end.y],
+									[edges_end[n][1].q_begin.x, edges_end[n][1].q_begin.y], [edges_end[n][1].q_end.x, edges_end[n][1].q_end.y])):
+
+				intersection = util.line_intersection([[edge_init[0].x, edge_init[0].y], [edge_init[1].q_end.x, edge_init[1].q_end.y]],
+													[[edges_end[n][0].x, edges_end[n][0].y], [edges_end[n][1].q_end.x, edges_end[n][1].q_end.y]])
+				q_inter = Tree.q(intersection, edge_init[1].q_end.theta)
+				angle = self.MinTurndirection(q_inter, [edges_end[n][1].q_end.x, edges_end[n][1].q_end.y])
+				_,collision = self.Tree_root.RCIExtend(q_inter, angle, obstacles)
 				if(not collision):
 					return n,True
+
 		return None,False
 
-	def getpath(self,q_init,edge_init,q_end,edge_end):
+
+	def getpath(self, q_init, edge_init, q_end, edge_end):
 		path1 = []
 		q_step = edge_init[0]
 		while(q_step is not None):
-
 			path1.append(q_step)
 			q_step = q_step.parent
-
 
 		path1 = path1[::-1]
 		path2 = []
@@ -321,43 +322,47 @@ class RTR_PLANNER:
 			path2.append(q_step)
 			q_step = q_step.parent
 
-		intersection = util.line_intersection([[edge_init[0].x,edge_init[0].y],[edge_init[1].q_end.x,edge_init[1].q_end.y]],
-												[[edge_end[0].x,edge_end[0].y],[edge_end[1].q_end.x,edge_end[1].q_end.y]])
-		path1.append(Tree.q(intersection,path1[-1].theta))
+		intersection = util.line_intersection([[edge_init[0].x, edge_init[0].y], [edge_init[1].q_end.x, edge_init[1].q_end.y]],
+												[[edge_end[0].x, edge_end[0].y], [edge_end[1].q_end.x, edge_end[1].q_end.y]])
+		path1.append(Tree.q(intersection, path1[-1].theta))
 		path1.extend(path2)
 
 		return path1
 
-	def find(self,q_begin,tree):
+
+	def find(self, q_begin, tree):
 		for edge in tree.edges:
 			if(type(edge[1]) is Tree.RCI):
 				continue
-			if(edge[1].q_end == q_begin and edge[1].q_begin!=q_begin):
-
+			if(edge[1].q_end == q_begin and edge[1].q_begin != q_begin):
 				return edge[1]
 
-	def correct_angles_in_path(self,path):
+
+	def correct_angles_in_path(self, path):
 		correct_path = []
 		for n in range(len(path)-1):
 			if(n==0):
 				correct_path.append(path[0])
 				continue
-			correct_path.append(Tree.q([path[n].x,path[n].y],path[n].theta + self.MinTurndirection(path[n],[path[n+1].x,path[n+1].y])))
-		correct_path.append(Tree.q([path[-1].x,path[-1].y],path[-1].theta))
+			correct_path.append(Tree.q([path[n].x, path[n].y], path[n].theta + self.MinTurndirection(path[n], [path[n+1].x, path[n+1].y])))
+		correct_path.append(Tree.q([path[-1].x, path[-1].y], path[-1].theta))
 		return correct_path
 
-	def MinTurndirection(self,q_nearest,random_point):
+
+	def MinTurndirection(self, q_nearest, random_point):
 		x = random_point[0] - q_nearest.x
 		y = random_point[1] - q_nearest.y
 
 		dx = math.cos(q_nearest.theta)
 		dy = math.sin(q_nearest.theta)
-		angle = math.atan2(x*dy - y*dx,x*dx+y*dy)
+		angle = math.atan2(x*dy - y*dx, x*dx + y*dy)
 
 		return -angle
 
+
 	def RandomPos(self,dims):
-		return [random.randint(0,dims[0]),random.randint(0,dims[1])]
+		return [random.randint(0, dims[0]), random.randint(0, dims[1])]
+
 
 	def print_path(self,path):
 		print("~~~~~~~~~~~~~~~")
@@ -365,46 +370,48 @@ class RTR_PLANNER:
 			print(q)
 		print("~~~~~~~~~~~~~~\n")
 
+
 	def generate_paths(self,true_path, p_type, n_of_samples,reverse=False):
 		paths = []
 		for i in range(n_of_samples-1):
 			path = TP.TTSPlaner().getTrajectory(TP.Pose(true_path[0].x, true_path[0].y, true_path[0].theta),
 													TP.Pose(true_path[-1].x, true_path[-1].y, true_path[-1].theta),
-														0.2,0.05, reverse)
+														0.2, 0.05, reverse)
 			paths.append(path)
-		#print(true_path[0].x, true_path[0].y, true_path[0].theta)
-		#print(true_path[-1].x, true_path[-1].y, true_path[-1].theta)
 
 		paths.append(TP.eeS_Planer().getTrajectory(TP.Pose(true_path[0].x, true_path[0].y, true_path[0].theta),
-												TP.Pose(true_path[-1].x, true_path[-1].y, true_path[-1].theta),
-													0.2,0.05, reverse))
+														TP.Pose(true_path[-1].x, true_path[-1].y, true_path[-1].theta),
+															0.2, 0.05, reverse))
 		paths = self.into_q(paths)
 		return paths
+
 
 	def into_q(self,paths):
 		new_path = []
 		for path in paths:
-			temp = [path[0],path[1]]
+			temp = [path[0], path[1]]
 			temp_path = []
 			for q in path[2][1:]:
-				temp_path.append(self.Tree_end.q([q[0],q[1]],q[2]))
+				temp_path.append(self.Tree_end.q([q[0], q[1]], q[2]))
 			temp.append(temp_path)
 			new_path.append(temp)
 		return new_path
 
-	def get_path_len(self,path):
+
+	def get_path_len(self, path):
 		length = 0
 		for n in range(len(path)-1):
-			length+=math.hypot(path[n].x-path[n+1].x,path[n].y-path[n+1].y)
+			length+=math.hypot(path[n].x - path[n+1].x, path[n].y - path[n+1].y)
 		return length
 
-	def transform_path(self,true_path, p_type, obstacles, frame, robot, n_of_samples, reverse = False):
-		paths = self.generate_paths(true_path,p_type, n_of_samples,reverse)
+
+	def transform_path(self, true_path, p_type, obstacles, frame, robot, n_of_samples, reverse = False):
+		paths = self.generate_paths(true_path, p_type, n_of_samples, reverse)
 		min_path = None
 		min_path_dist = 10000000
 		exist = False
 		for path in paths:
-			safe = self.check_for_safety(path[2],obstacles,frame,robot)
+			safe = self.check_for_safety(path[2], obstacles, frame, robot)
 			if(safe):
 				cand_dist = np.asscalar(path[1])
 				if(cand_dist < min_path_dist):
@@ -416,20 +423,22 @@ class RTR_PLANNER:
 			return min_path
 
 		else:
-			if(self.get_path_len(true_path)<0.1):
+			if(self.get_path_len(true_path) < 0.1):
 				return False
+
 			mid_paths = self.find_middle_of_path(true_path)
 
 			path_lo = mid_paths[0]
 			path_hi = mid_paths[1]
-			cor_path_lo = self.transform_path(path_lo,p_type,obstacles,frame,robot,n_of_samples)
-			cor_path_hi = self.transform_path(path_hi,p_type,obstacles,frame,robot,n_of_samples)
+			cor_path_lo = self.transform_path(path_lo, p_type, obstacles, frame, robot, n_of_samples)
+			cor_path_hi = self.transform_path(path_hi, p_type, obstacles, frame, robot, n_of_samples)
 			if(cor_path_lo and cor_path_hi):
-				return self.concat_paths(cor_path_lo,cor_path_hi)
+				return self.concat_paths(cor_path_lo, cor_path_hi)
 			else:
 				return False
 
-	def concat_paths(self,cor_path_lo,cor_path_hi):
+
+	def concat_paths(self, cor_path_lo, cor_path_hi):
 		if(type(cor_path_hi[1]) is float):
 			a = cor_path_hi[1]
 		else:
@@ -438,112 +447,56 @@ class RTR_PLANNER:
 			b = cor_path_lo[1]
 		else:
 			b = np.asscalar(cor_path_lo[1])
-		path = cor_path_lo[2]+cor_path_hi[2]
-		cor_path = [cor_path_lo[0]+cor_path_hi[0],
-						a+b,
-							path]
+		path = cor_path_lo[2] + cor_path_hi[2]
+		cor_path = [cor_path_lo[0] + cor_path_hi[0], a+b, path]
 		return cor_path
 
-	def check_for_safety(self,x_y_z, obstacles, frame, robot):
 
+	def check_for_safety(self,x_y_z, obstacles, frame, robot):
 		for q in x_y_z:
-			candidate = self.Tree_end.q([q.x/px_to_m,q.y/px_to_m],q.theta)
+			candidate = self.Tree_end.q([q.x/px_to_m, q.y/px_to_m], q.theta)
 			if(robot.ifCrash(candidate, obstacles, frame, None, None)):
 				return False
 		return True
 
-	def path_into_m(self,path):
+
+	def path_into_m(self, path):
 		new_path = []
 		for q in path:
-			new_path.append(self.Tree_end.q([q.x*px_to_m,q.y*px_to_m],q.theta))
+			new_path.append(self.Tree_end.q([q.x*px_to_m, q.y*px_to_m], q.theta))
 		return new_path
 
-	def path_to_px(self,path):
+
+	def path_to_px(self, path):
 		new_path = []
 		for q in path:
-			new_path.append(self.Tree_end.q([q.x/px_to_m,q.y/px_to_m],q.theta))
+			new_path.append(self.Tree_end.q([q.x/px_to_m, q.y/px_to_m], q.theta))
 		return new_path
 
-	def find_middle_of_path(self,path):
+
+	def find_middle_of_path(self, path):
 		length = 0
 		path_lo = []
 		path_ho = []
 		for n in range(len(path)-1):
-			length+=math.hypot(path[n].x-path[n+1].x,path[n].y-path[n+1].y)
+			length += math.hypot(path[n].x - path[n+1].x, path[n].y - path[n+1].y)
 		mid = length/2
 		len_f = 0
 		for n in range(len(path)-1):
-			len_f+=math.hypot(path[n].x-path[n+1].x,path[n].y-path[n+1].y)
-			if(len_f>=mid):
-				if(len_f==mid):
-					mid_x_y = [path[n+1].x,path[n+1].y]
+			len_f+=math.hypot(path[n].x - path[n+1].x, path[n].y - path[n+1].y)
+			if(len_f >= mid):
+				if(len_f == mid):
+					mid_x_y = [path[n+1].x, path[n+1].y]
 					mid_theta = path[n+1].theta
 				else:
-					dist = (-len_f+math.hypot(path[n].x-path[n+1].x,path[n].y-path[n+1].y)+mid)
-					angle = math.atan2(-path[n].y+path[n+1].y,-path[n].x+path[n+1].x)
-					mid_x_y = [path[n].x + dist*math.cos(angle),path[n].y+dist*math.sin(angle)]
+					dist = (-len_f + math.hypot(path[n].x - path[n+1].x, path[n].y - path[n+1].y) + mid)
+					angle = math.atan2(-path[n].y + path[n+1].y, -path[n].x + path[n+1].x)
+					mid_x_y = [path[n].x + dist*math.cos(angle),path[n].y + dist*math.sin(angle)]
 					mid_theta = path[n+1].theta
-				mid_q = self.Tree_end.q(mid_x_y,mid_theta)
+				mid_q = self.Tree_end.q(mid_x_y, mid_theta)
 				path_lo = path[0:n+1]
 				path_lo.append(mid_q)
 				path_hi = []
 				path_hi.append(mid_q)
 				path_hi.extend(path[n+1:])
-				return path_lo,path_hi
-
-def main():
-	img = cv2.imread("35.png",1)
-	robot_pose=  detect.Mapping().find_car(img)
-	q_root = Tree.q([50,50],0)
-	q_root.parent = None
-	q_end = Tree.q([500,350],-0.0)
-	q_end.parent = None
-	robot = Robot([q_root.x,q_root.y],80,60)
-	rt_tree = RTR_PLANNER(robot,img)
-
-	wall6 = util.build_wall([0,100],[img.shape[:2][1]-300,100],200)
-	wall5 = util.build_wall([img.shape[:2][1],250],[300,250],200)
-	wall7 = util.build_wall([0,350],[img.shape[:2][1]-300,350],200)
-
-
-	#obstacles = [wall6,wall5,wall7]
-	obstacles = []
-	path1 = rt_tree.construct(q_root,q_end,obstacles,50,200)
-
-	img = rt_tree.Tree_root.draw_path(obstacles,path1,rt_tree.Tree_root.img)
-	win_name = "Win1"
-	cv2.namedWindow(win_name)
-	cv2.imshow(win_name,img)
-	cv2.waitKey(0)
-	path1 = rt_tree.path_into_m(path1)
-	new_path = rt_tree.transform_path(path1,"TTS",obstacles,img,robot,5,False)
-	#print(new_path)
-
-	if(new_path ):
-		descr = new_path[0]
-		print(descr)
-		new_path = rt_tree.path_to_px(new_path[2])
-		#print(new_path)
-		#new_path1 = new_path
-		#for q in new_path:
-			#print(q)
-		# for q in new_path:
-		# 	print(q)
-		# 	new_path1.append(rt_tree.Tree_end.q([q[0],q[1]],q[2]))
-		#print(new_path1)
-		img = cv2.imread("35.png",1)
-		img = rt_tree.Tree_root.draw_path(obstacles,new_path,img)
-		win_name = "Win1"
-		cv2.namedWindow(win_name)
-		cv2.imshow(win_name,img)
-		cv2.waitKey(0)
-		#print("-------------")
-		#print(new_path)
-		#print("-------------")
-	else:
-		print("Path not found")
-
-
-
-if __name__ == '__main__':
-	main()
+				return path_lo, path_hi
