@@ -47,7 +47,7 @@ class StraightLine(TrajectoryLine):
         if v != 0:
             self.vx = v * cos(self.gamma)
             self.vy = v * sin(self.gamma)
-            self.end_time = sqrt( (point_1.y - point_0.y)**2 + (point_1.x - point_0.x)**2) / v
+            self.end_time = sqrt((point_1.y - point_0.y)**2 + (point_1.x - point_0.x)**2) / v
         else:
             self.accuracy = accuracy
 
@@ -59,7 +59,7 @@ class StraightLine(TrajectoryLine):
             return x_r_new
 
     def getCoordinatesDistance(self, x_r, y_r):
-        if sqrt( (self.point_1.x - x_r) ** 2 + (self.point_1.y - y_r) ** 2) < self.accuracy:
+        if sqrt((self.point_1.x - x_r) ** 2 + (self.point_1.y - y_r) ** 2) < self.accuracy:
             self.is_end = True
         s = self.getClosest(x_r,  y_r)
         x_ref = self.point_0.x + s * cos(self.gamma)
@@ -69,6 +69,7 @@ class StraightLine(TrajectoryLine):
         return x_ref, y_ref, kappa, t_hat
 
     def getCoordinatesTime(self, t):
+        print("Time: " + str(t) + "  " + str(self.end_time))
         if t > self.end_time:
             self.is_end = True
             return TrajectoryPoint(self.point_1.x, 0.0, 0.0, self.point_1.y, 0.0, 0.0)

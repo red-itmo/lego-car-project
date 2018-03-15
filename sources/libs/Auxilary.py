@@ -1,6 +1,17 @@
 from math import pi, sqrt, cos, sin, copysign, pow, atan2
 import numpy as np
-from TrajectoryStuff_02 import Pose
+
+
+class Point:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+
+class Pose:
+    def __init__(self, x, y, angle):
+        self.point = Point(x, y)
+        self.angle = angle
 
 
 class AngleFinder:

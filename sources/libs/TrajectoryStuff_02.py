@@ -1,6 +1,7 @@
 from math import sin, cos, atan2, sqrt, pi, copysign
-from Auxilary import *
+from libs.Auxilary import *
 import numpy as np
+
 
 class Point:
 
@@ -47,7 +48,7 @@ class StraightLine(TrajectoryLine):
         if v != 0:
             self.vx = v * cos(self.gamma)
             self.vy = v * sin(self.gamma)
-            self.end_time = sqrt( (point_1.y - point_0.y)**2 + (point_1.x - point_0.x)**2) / v
+            self.end_time = sqrt((point_1.y - point_0.y)**2 + (point_1.x - point_0.x)**2) / v
         else:
             self.accuracy = accuracy
 
@@ -59,7 +60,7 @@ class StraightLine(TrajectoryLine):
             return x_r_new
 
     def getCoordinatesDistance(self, x_r, y_r):
-        if sqrt( (self.point_1.x - x_r) ** 2 + (self.point_1.y - y_r) ** 2) < self.accuracy:
+        if sqrt((self.point_1.x - x_r) ** 2 + (self.point_1.y - y_r) ** 2) < self.accuracy:
             self.is_end = True
         s = self.getClosest(x_r,  y_r)
         x_ref = self.point_0.x + s * cos(self.gamma)
@@ -140,7 +141,6 @@ class ClothoidLine(TrajectoryLine):
         super(ClothoidLine, self).__init__()
         self.gamma, self.alpha, self.s_end, self.type = gamma, alpha, s_end, type
         self.delta = (self.alpha * self.s_end ** 2) / 2
-
 
         self.R1 = np.array([[cos(pose_0.angle), -sin(pose_0.angle)], [sin(pose_0.angle), cos(pose_0.angle)]])
 
