@@ -3,7 +3,7 @@ import numpy as np
 from scipy import optimize
 import random
 from Auxilary import *
-from TrajectoryStuff_02 import Pose
+from TrajectoryStuff import Pose
 
 
 k_max = 1.5
