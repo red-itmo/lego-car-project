@@ -15,7 +15,7 @@ from libs.TrajectoryControllers import ControllerWithLinearization
 class RobotState:
     """
         !!! Not used but can be used!
-        !!! need a separate thread
+        !!! needs a separate thread
     """
     def __init__(self, robot):
         self.x, self.y = 0, 0
@@ -31,7 +31,7 @@ class RobotState:
         clock = Clock()
         while True:
             t, dt = clock.getTandDT()
-            self.theta, self.omega = [-x for x in self.__gyro.rate_and_angle]  # !!! returns ANGLE AND RATE :)
+            self.theta, self.omega = [-x for x in self.__gyro.rate_and_angle]
             self.x, self.y, self.dx, self.dy = self.__localization.getData(radians(self.theta), radians(self.__motor_rear.speed), dt)
 
     def getState(self):
@@ -99,7 +99,7 @@ class LegoCar:
         Sound.speak('Wheels were turned!')
 
     def velocity_move(self, vel_linear, vel_angular, time):
-    # initialization for current mode
+        # initialization for current mode
         self.__velocity_controller.setTargetVelocities(vel_linear, vel_angular)
         clock = Clock()
         fh = open("vel.txt", "w")
@@ -107,7 +107,7 @@ class LegoCar:
             try:
                 t, dt = clock.getTandDT()
 
-                theta, omega = [-x for x in self.__sensor_gyro.rate_and_angle]  # !!! returns ANGLE AND RATE :)
+                theta, omega = [-x for x in self.__sensor_gyro.rate_and_angle]  # returns ANGLE AND RATE
                 x, y, dx, dy, v_r = self.__localization.getData(radians(theta), radians(self.__motor_rear.speed), dt)
                 self.__robot_state = [x, y, dx, dy, theta, omega]  # update state
 
@@ -136,7 +136,7 @@ class LegoCar:
             try:
                 t, dt = clock.getTandDT()
 
-                theta, omega = [-x for x in self.__sensor_gyro.rate_and_angle]  # !!! returns ANGLE AND RATE :)
+                theta, omega = [-x for x in self.__sensor_gyro.rate_and_angle]  # returns ANGLE AND RATE
                 x, y, dx, dy, v_r = self.__localization.getData(radians(theta), radians(self.__motor_rear.speed), dt)
                 self.__robot_state = [x, y, dx, dy, theta, omega]  # update state
 
@@ -159,7 +159,7 @@ class LegoCar:
         fh.close()
         self.__motor_rear.duty_cycle_sp = 0
         self.__motor_steer.duty_cycle_sp = 0
-        #raise SystemExit
+        # raise SystemExit
 
     def path_move(self, trajectory, v_des = 0.2):
         fh = open("test.txt", "w")

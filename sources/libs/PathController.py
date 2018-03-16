@@ -1,7 +1,8 @@
 from math import atan2, cos, sin, pi
 from libs.Auxilary import AngleFinder
 
-class PathController:# FIXME Class does not work with backwards directions or negative speed
+
+class PathController:  # FIXME Class does not work with backwards directions or negative speed
     def __init__(self):
         self.k_theta = 20
         self.k_e = -50
@@ -19,6 +20,7 @@ class PathController:# FIXME Class does not work with backwards directions or ne
         if theta_e != 0:
             w -= (v_r * (self.k_e * sin(theta_e) / theta_e)) * e
         else:
-            w -= (v_r * (self.k_e)) * e
+            w -= (v_r * self.k_e) * e
         print("%f %f %f %f %f" % (d[0], d[1], e, aux_angle, w))
+
         return w
