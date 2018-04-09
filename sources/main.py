@@ -3,7 +3,7 @@
     Module launching the lego-car
 """
 from libs.Robots import LegoCar
-from libs.TrajectoryStuff_02 import Point, StraightLine, CircleLine, ClothoidLine, Pose
+from libs.TrajectoryStuff import Point, StraightLine, CircleLine, ClothoidLine, Pose
 import libs.Client as Client
 import libs.Localization as Loc
 from math import cos, sin, pi

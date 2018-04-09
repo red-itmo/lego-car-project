@@ -1,5 +1,6 @@
 from math import sin, cos, atan2, sqrt, pi, copysign
 from libs.Auxilary import *
+import numpy as np
 
 
 class Point:
@@ -142,19 +143,21 @@ class ClothoidLine(TrajectoryLine):
         self.gamma, self.alpha, self.s_end, self.type = gamma, alpha, s_end, type
         self.delta = (self.alpha * self.s_end ** 2) / 2
 
-        self.R1 = [[cos(pose_0.angle), -sin(pose_0.angle)], [sin(pose_0.angle), cos(pose_0.angle)]]
+        self.R1 = np.array([[cos(pose_0.angle), -sin(pose_0.angle)], [sin(pose_0.angle), cos(pose_0.angle)]])
 
-        self.T1 = [[cos(pose_0.angle), -sin(pose_0.angle), pose_0.point.x],
-                   [sin(pose_0.angle), cos(pose_0.angle), pose_0.point.y],
-                   [0, 0, 1]]
+        self.T1 = np.array([[cos(pose_0.angle), -sin(pose_0.angle), pose_0.point.x],
+                            [sin(pose_0.angle), cos(pose_0.angle), pose_0.point.y],
+                            [0, 0, 1]])
 
         if type == "out":
             self.start_point = Point(xCoord(-self.gamma, self.alpha, self.s_end), yCoord(-self.gamma, self.alpha, self.s_end))
-            self.R2_inv = [[cos(self.delta), sin(self.delta)], [-sin(self.delta), cos(self.delta)]]
-            self.T2_inv = [
-                [cos(self.delta), sin(self.delta), -self.start_point.y * sin(self.delta) - self.start_point.x * cos(self.delta)],
-                [-sin(self.delta), cos(self.delta), -self.start_point.y * cos(self.delta) + self.start_point.x * sin(self.delta)],
-                [0, 0, 1]]
+            self.R2 = np.array([[cos(self.delta), -sin(self.delta)],
+                                [sin(self.delta), cos(self.delta)]])
+            self.T2 = np.array([[cos(self.delta), -sin(self.delta), self.start_point.x],
+                                [sin(self.delta), cos(self.delta), self.start_point.y],
+                                [0, 0, 1]])
+            self.R2_inv = np.linalg.inv(self.R2)
+            self.T2_inv = np.linalg.inv(self.T2)
 
         self.speed = v
         if self.speed != 0:
@@ -186,8 +189,8 @@ class ClothoidLine(TrajectoryLine):
     #         kappa = self.alpha * (2 * self.s_end - s)
     #         t_hat_aux = [[self.gamma * cos(abs(self.alpha) / 2 * (2 * self.s_end - s) ** 2)], [
     #             -self.gamma * copysign(1, self.gamma) * sin(abs(self.alpha) / 2 * (2 * self.s_end - s) ** 2)]]
-    #         refs = matmult(matmult(self.T1, self.T2_inv), [[x_ref_aux], [y_ref_aux], [1]])
-    #         t_hat = matmult(matmult(self.R1, self.R2_inv), t_hat_aux)
+    #         refs = dott(dott(self.T1, self.T2_inv), [[x_ref_aux], [y_ref_aux], [1]])
+    #         t_hat = dott(dott(self.R1, self.R2_inv), t_hat_aux)
     #
     #         return refs[0], refs[1], kappa, t_hat
 
@@ -208,9 +211,9 @@ class ClothoidLine(TrajectoryLine):
             y_ref_d_deriv_aux = self.gamma * t * abs(self.alpha) * self.speed ** 3 * copysign(1, self.alpha) * cos(
                 abs(self.alpha) * (self.speed * t) ** 2 / 2)
 
-            refs_d_deriv_aux = matmult(self.R1, [[x_ref_d_deriv_aux], [y_ref_d_deriv_aux]])
-            refs_deriv_aux = matmult(self.R1, [[x_ref_deriv_aux], [y_ref_deriv_aux]])
-            refs_aux = matmult(self.T1, [[x_ref_aux], [y_ref_aux], [1]])
+            refs_d_deriv_aux = np.dot(self.R1, [[x_ref_d_deriv_aux], [y_ref_d_deriv_aux]])
+            refs_deriv_aux = np.dot(self.R1, [[x_ref_deriv_aux], [y_ref_deriv_aux]])
+            refs_aux = np.dot(self.T1, [[x_ref_aux], [y_ref_aux], [1]])
 
             return TrajectoryPoint(refs_aux[0][0], refs_deriv_aux[0][0], refs_d_deriv_aux[0][0], refs_aux[1][0],
                                    refs_deriv_aux[1][0], refs_d_deriv_aux[1][0])
@@ -227,8 +230,9 @@ class ClothoidLine(TrajectoryLine):
             x_ref_aux_d_deriv = self.gamma * abs(self.alpha) * self.speed ** 2 * (self.s_end - self.speed * t) * sin(abs(self.alpha) * (self.s_end - self.speed * t) ** 2 / 2)
             y_ref_aux_d_deriv = -self.gamma * abs(self.alpha) * copysign(1, self.alpha) * self.speed ** 2 * (self.s_end - self.speed * t) * cos(abs(self.alpha) * (self.s_end - self.speed * t) ** 2 / 2)
 
-            refs_d_deriv = matmult(matmult(self.R1, self.R2_inv), [[x_ref_aux_d_deriv], [y_ref_aux_d_deriv]])
-            refs_deriv = matmult(matmult(self.R1, self.R2_inv), [[x_ref_aux_deriv], [y_ref_aux_deriv]])
-            refs = matmult(matmult(self.T1, self.T2_inv), [[x_ref_aux], [y_ref_aux], [1]])
+            refs_d_deriv = np.dot(np.dot(self.R1, self.R2_inv), [[x_ref_aux_d_deriv], [y_ref_aux_d_deriv]])
+            refs_deriv = np.dot(np.dot(self.R1, self.R2_inv), [[x_ref_aux_deriv], [y_ref_aux_deriv]])
+
+            refs = np.dot(np.dot(self.T1, self.T2_inv), [[x_ref_aux], [y_ref_aux], [1]])
 
             return TrajectoryPoint(refs[0][0], refs_deriv[0][0], refs_d_deriv[0][0], refs[1][0], refs_deriv[1][0], refs_d_deriv[1][0])

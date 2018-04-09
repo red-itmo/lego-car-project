@@ -34,12 +34,3 @@ class Clock:
     def getTandDT(self):
         self.update()
         return self.getCurrentTime(), self.getDT()
-
-
-if __name__ == '__main__':
-    clock = Clock()
-    while True:
-        # clock.update()
-        t, dt = clock.getTandDT()
-        print(t, dt)
-        time.sleep(0.3)
