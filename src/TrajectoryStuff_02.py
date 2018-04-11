@@ -1,5 +1,5 @@
 from math import sin, cos, atan2, sqrt, pi, copysign
-from Auxilary import *
+from src.Auxilary import *
 import numpy as np
 
 class Point:

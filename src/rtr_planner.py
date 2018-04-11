@@ -1,12 +1,12 @@
+
 import random
 import math
 import numpy as np
 import cv2
-import utility as util
 import copy
-import TrajectoryPlaners as TP
-import Mapping as detect
-import Auxilary as aux
+import src.TrajectoryPlaners as TP
+import src.Mapping as detect
+import src.Auxilary as aux
 random.seed()
 
 # defining camera resolution and main diagonal of the floor on the camera

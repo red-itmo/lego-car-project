@@ -1,6 +1,6 @@
 from math import pi, sqrt, cos, sin, copysign, pow, atan2
 import numpy as np
-from TrajectoryStuff_02 import Pose
+from src.TrajectoryStuff_02 import Pose
 
 
 class AngleFinder:

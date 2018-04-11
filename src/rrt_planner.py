@@ -3,7 +3,7 @@ import math
 import numpy as np
 import cv2
 import time
-import Auxilary as aux
+import src.Auxilary as aux
 random.seed()
 
 class RRT_PLANNER:

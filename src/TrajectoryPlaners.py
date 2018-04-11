@@ -2,8 +2,8 @@ from math import pi, copysign, sin, cos
 import numpy as np
 from scipy import optimize
 import random
-from Auxilary import *
-from TrajectoryStuff_02 import Pose
+from src.Auxilary import *
+from src.TrajectoryStuff_02 import Pose
 import matplotlib.pyplot as plt
 
 k_max = 1.5
