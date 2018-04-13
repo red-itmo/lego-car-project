@@ -231,10 +231,10 @@ class CamApp(App):
 				path = rt_tree.path_to_px(transformed_path[2])
 				descr = transformed_path[0]
 				self.send = False
-				is_sent = self.serv.send([robot_pose[0][0] * px_to_m, robot_pose[0][1] * px_to_m, -robot_pose[1]],descr)
+				is_sent = self.serv.send([[robot_pose[0][0] * px_to_m, robot_pose[0][1] * px_to_m, -robot_pose[1]],descr])
 				while not is_sent:
-					is_sent = self.serv.send([robot_pose[0][0] * px_to_m, robot_pose[0][1] * px_to_m, -robot_pose[1]],
-										descr)
+					is_sent = self.serv.send([[robot_pose[0][0] * px_to_m, robot_pose[0][1] * px_to_m, -robot_pose[1]],
+										descr])
 				self.send = not self.send
 			else:
 				path = False
