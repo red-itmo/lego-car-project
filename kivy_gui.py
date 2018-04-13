@@ -180,8 +180,9 @@ class CamApp(App):
 
 
 	def update(self, dt):
+		global path_done
 		robot_pose_new = mapping.Mapping().find_car(self.my_camera.frame)
-		if (robot_pose_new[0] is not False and robot_pose_new[1] is not False):
+		if (robot_pose_new[0] is not False and robot_pose_new[1] is not False and not path_done):
 			velocity = (robot_pose_new[0][0] - self.robot_pose_old[0][0]) / dt
 			angular_velocity = (robot_pose_new[0][1] - self.robot_pose_old[0][1]) / dt
 			self.vel_label.text = "Velocity: " + str(velocity)
