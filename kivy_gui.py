@@ -27,13 +27,7 @@ import src.Auxilary as aux
 global cam_res
 global cam_pose
 global is_drawing
-global path_done
-global path
-global rt_tree
-global dest
-global dest_label
-global button_layout
-global dest_exsist
+
 
 # --------------------------------------------
 # WARNING
@@ -71,6 +65,7 @@ class KivyCamera(Image):
 
 
 	def update(self, dt):
+		global path_done
 		ret, self.frame = self.capture.read()
 		if ret:
 			# convert it to texture
@@ -87,6 +82,9 @@ class KivyCamera(Image):
 
 
 	def draw_path(self, img, mode):
+		global path_done
+		global path
+		global rt_tree
 		if (path is None or path is False):
 			font = cv.FONT_HERSHEY_SIMPLEX
 			cv.putText(img, "Path not found", (30, 30), font, 1, (0, 0, 255), 2, cv.LINE_AA)
@@ -111,6 +109,9 @@ class CamApp(App):
 
 
 	def build(self):
+		global dest
+		global dest_label
+		global button_layout
 		self.capture = cv.VideoCapture(1)
 		self.my_camera = KivyCamera(capture=self.capture, fps=30)
 		button_layout = BoxLayout(orientation='vertical')
@@ -144,6 +145,7 @@ class CamApp(App):
 		general_layout.add_widget(self.cam)
 		general_layout.add_widget(button_layout)
 
+		# SRV CONNECTION PART
 		self.send = False
 		print("Trying to connect to remote server")
 		port = 3000
@@ -157,6 +159,8 @@ class CamApp(App):
 
 
 	def clear_dest_point(self, obj):
+		global dest_exsist
+		global dest_label
 		dest_label.text = "Not yet entered"
 		dest_exsist = False
 		print(self.my_camera.pos)
@@ -166,6 +170,7 @@ class CamApp(App):
 
 
 	def clear_obstacles(self, obj):
+		global dest
 		self.painter.canvas.clear()
 		with self.painter.canvas:
 			Color(1, 0, 0)
@@ -188,6 +193,11 @@ class CamApp(App):
 
 
 	def draw_path_btn(self, obj):
+		global is_drawing
+		global dest
+		global path_done
+		global path
+		global rt_tree
 		obst = []
 		path_done = False
 		robot = planner.Robot([50, 50], 75, 40)
@@ -233,6 +243,7 @@ class CamApp(App):
 
 
 	def obstacles_drawing_mode(self, obj):
+		global is_drawing_obst
 		is_drawing_obst = not is_drawing_obst
 		if (is_drawing_obst):
 			self.start_obst_drawing_btn.text = "Stop Obstacles drawing"
@@ -244,6 +255,10 @@ class CamApp(App):
 
 
 		def on_touch_down(self, touch):
+			global dest_exsist
+			global dest
+			global dest_label
+			global is_drawing_obst
 			self.obstacles = []
 			self.second_points = []
 			if (not is_drawing_obst and touch.x > cam_pose[0] and touch.y > cam_pose[1] and touch.x < cam_pose[0] +
@@ -264,11 +279,16 @@ class CamApp(App):
 
 
 		def on_touch_up(self, touch):
+			global obstacles
+			global all_obst_points
+			global obst_lines
 			if (is_drawing_obst):
 				obst_lines.append([self.obstacles[0], self.obstacles[-1]])
 
 
 		def on_touch_move(self, touch):
+			global dest_label
+			global is_drawing_obst
 			if (is_drawing_obst):
 				if (touch.x > cam_pose[0] and touch.y > cam_pose[1] and touch.x < cam_pose[0] + cam_res[0] and touch.y <
 						cam_pose[1] + cam_res[1]):
