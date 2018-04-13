@@ -248,20 +248,20 @@ def areOn1Line(x1, y1, x2, y2, x3, y3):
 
 
 def coord_to_angle(x1, y1, x2, y2):
-	return math.atan2(y1 - y2, x1 - x2) / math.pi * 180
+	return atan2(y1 - y2, x1 - x2) / pi * 180
 
 
 def rasst(x1, y1, x2, y2):
-	return math.sqrt(math.pow(x1 - x2, 2) + math.pow(y1 - y2, 2))
+	return sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2))
 
 
 def isInGoalCircle(point,goal):
-	d = math.sqrt(math.pow((point.position[0]-goal[0]), 2)+math.pow((point.position[1]-goal[1]), 2))
+	d = sqrt(pow((point.position[0]-goal[0]), 2)+pow((point.position[1]-goal[1]), 2))
 	return d < 20
 
 
 def isInObstCircle(point,obs_point):
-	d = math.sqrt(math.pow((point[0]-obs_point[0]), 2)+math.pow((point[1]-obs_point[1]), 2))
+	d = sqrt(pow((point[0]-obs_point[0]), 2)+pow((point[1]-obs_point[1]), 2))
 	return d < 40
 
 
@@ -358,7 +358,7 @@ def ClosestPoint(A,B,P):
 		a_to_p = [P.x - A.x, P.y - A.y]
 		a_to_b = [B.x - A.x, B.y - A.y]
 
-		atb2 = math.pow(a_to_b[0], 2) + math.pow(a_to_b[1], 2)
+		atb2 = pow(a_to_b[0], 2) + pow(a_to_b[1], 2)
 
 		atp_dot_atb = a_to_p[0]*a_to_b[0] + a_to_p[1]*a_to_b[1]
 
@@ -398,4 +398,4 @@ def dot_product(vector1,vector2):
 
 
 def sigmoid(t):
-	return 1 / (1 + math.exp(-t))
+	return 1 / (1 + exp(-t))
