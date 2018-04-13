@@ -1,4 +1,4 @@
-from math import pi, sqrt, cos, sin, copysign, pow, atan2
+from math import pi, sqrt, cos, sin, copysign, pow, atan2, exp
 import numpy as np
 from src.TrajectoryStuff_02 import Pose
 
