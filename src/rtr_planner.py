@@ -59,16 +59,16 @@ class Robot:
 			points_of_robot[1] = [points_of_robot[1][0] - turn_radius*math.cos(q.theta), points_of_robot[1][1] - turn_radius*math.sin(q.theta)]
 
 
-		Crash = util.CrossesObstacles(points_of_robot[0], points_of_robot[-1], obstacles)
+		Crash = aux.CrossesObstacles(points_of_robot[0], points_of_robot[-1], obstacles)
 		if(Crash):
 			return True
 		for i in range(len(points_of_robot)-1):
-			Crash = util.CrossesObstacles(points_of_robot[i], points_of_robot[i+1], obstacles)
+			Crash = aux.CrossesObstacles(points_of_robot[i], points_of_robot[i+1], obstacles)
 			if(Crash):
 				return True
 
 
-		if(not util.inRangeOfImg(points_of_robot, img)):
+		if(not aux.inRangeOfImg(points_of_robot, img)):
 			return True
 		return Crash
 
@@ -199,7 +199,7 @@ class Tree:
 				candidate_q = [edge[1].q_end.x, edge[1].q_end.y]
 
 			else:
-				candidate_q = util.ClosestPoint(edge[0], edge[1].q_end, self.q(new_vertex, 0))
+				candidate_q = aux.ClosestPoint(edge[0], edge[1].q_end, self.q(new_vertex, 0))
 			candidate_dist = math.hypot(new_vertex[0] - candidate_q[0], new_vertex[1] - candidate_q[1])
 			if min_dist == None or candidate_dist < min_dist:
 				true_edge = edge
@@ -294,10 +294,10 @@ class RTR_PLANNER:
 		for n in range(len(edges_end)):
 			if(type(edges_end[n][1]) is Tree.RCI or type(edge_init[1]) is Tree.RCI):
 				continue
-			if(util.doIntersect([edge_init[1].q_begin.x, edge_init[1].q_begin.y], [edge_init[1].q_end.x, edge_init[1].q_end.y],
+			if(aux.doIntersect([edge_init[1].q_begin.x, edge_init[1].q_begin.y], [edge_init[1].q_end.x, edge_init[1].q_end.y],
 									[edges_end[n][1].q_begin.x, edges_end[n][1].q_begin.y], [edges_end[n][1].q_end.x, edges_end[n][1].q_end.y])):
 
-				intersection = util.line_intersection([[edge_init[0].x, edge_init[0].y], [edge_init[1].q_end.x, edge_init[1].q_end.y]],
+				intersection = aux.line_intersection([[edge_init[0].x, edge_init[0].y], [edge_init[1].q_end.x, edge_init[1].q_end.y]],
 													[[edges_end[n][0].x, edges_end[n][0].y], [edges_end[n][1].q_end.x, edges_end[n][1].q_end.y]])
 				q_inter = Tree.q(intersection, edge_init[1].q_end.theta)
 				angle = self.MinTurndirection(q_inter, [edges_end[n][1].q_end.x, edges_end[n][1].q_end.y])
@@ -322,7 +322,7 @@ class RTR_PLANNER:
 			path2.append(q_step)
 			q_step = q_step.parent
 
-		intersection = util.line_intersection([[edge_init[0].x, edge_init[0].y], [edge_init[1].q_end.x, edge_init[1].q_end.y]],
+		intersection = aux.line_intersection([[edge_init[0].x, edge_init[0].y], [edge_init[1].q_end.x, edge_init[1].q_end.y]],
 												[[edge_end[0].x, edge_end[0].y], [edge_end[1].q_end.x, edge_end[1].q_end.y]])
 		path1.append(Tree.q(intersection, path1[-1].theta))
 		path1.extend(path2)
