@@ -7,10 +7,10 @@ class Mapping:
 	def __init__(self):
 		# define the lower and upper boundaries of the colors of the markers
 		# ball in the HSV color space
-		self.blueLower = (96, 151, 138)
-		self.blueUpper = (115, 255, 210)
-		self.yellowLower = (0, 128, 108)
-		self.yellowUpper = (38, 173, 255)
+		self.blueLower = (96, 110, 126)
+		self.blueUpper = (105, 255, 247)
+		self.yellowLower = (0, 89, 122)
+		self.yellowUpper = (94, 150, 255)
 
 		self.car_angle = 0
 		self.car_coord = 0
