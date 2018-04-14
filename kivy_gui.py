@@ -51,7 +51,7 @@ dest = "Not yet entered"
 # 3.60 is diagonal of the floor under the camera
 px_to_m = 3.60 / math.hypot(cam_res[0], cam_res[1])
 obst_lines = []
-
+fh = open("logs_gui.txt", "w")
 
 class KivyCamera(Image):
 
@@ -112,7 +112,7 @@ class CamApp(App):
 		global dest
 		global dest_label
 		global button_layout
-		self.capture = cv.VideoCapture(1)
+		self.capture = cv.VideoCapture(0)
 		self.my_camera = KivyCamera(capture=self.capture, fps=30)
 		button_layout = BoxLayout(orientation='vertical')
 		general_layout = BoxLayout(orientation='horizontal')
@@ -182,16 +182,28 @@ class CamApp(App):
 	def update(self, dt):
 		global path_done
 		robot_pose_new = mapping.Mapping().find_car(self.my_camera.frame)
-		if (robot_pose_new[0] is not False and robot_pose_new[1] is not False and 8apath_done):
+		if (robot_pose_new[0] is not False and robot_pose_new[1] is not False):
 			velocity = (robot_pose_new[0][0] - self.robot_pose_old[0][0]) / dt
 			angular_velocity = (robot_pose_new[0][1] - self.robot_pose_old[0][1]) / dt
 			self.vel_label.text = "Velocity: " + str(velocity)
 			self.angle_vel_label.text = "Angular Velocity: " + str(angular_velocity)
 			self.robot_pose_old = robot_pose_new
-			is_sent = self.serv.send([robot_pose_new[0][0] * px_to_m, robot_pose_new[0][1] * px_to_m])
-			while is_sent and self.send:
-				is_sent = self.serv.send([robot_pose_new[0][0] * px_to_m, robot_pose_new[0][1] * px_to_m])
-
+			# is_sent = self.serv.send([robot_pose_new[0][0] * px_to_m, robot_pose_new[0][1] * px_to_m])
+			# print("I AM IN UPDATE")
+			# print(is_sent)
+			# while not is_sent and self.send:
+			# 	is_sent = self.serv.send([robot_pose_new[0][0] * px_to_m, robot_pose_new[0][1] * px_to_m])
+			# 	print(is_sent)
+			fh.write("%f %f %f\n" % (robot_pose_new[0][0],robot_pose_new[0][1],robot_pose_new[1]))
+			if (self.send):
+				while True:
+						print("update")
+						try:
+							sent = self.serv.send([robot_pose_new[0][0] * px_to_m, robot_pose_new[0][1] * px_to_m])
+						except ConnectionResetError:
+							fh.close()
+						if sent:
+							break
 
 	def draw_path_btn(self, obj):
 		global is_drawing
@@ -232,11 +244,15 @@ class CamApp(App):
 				path = rt_tree.path_to_px(transformed_path[2])
 				descr = transformed_path[0]
 				self.send = False
-				is_sent = self.serv.send([[robot_pose[0][0] * px_to_m, robot_pose[0][1] * px_to_m, -robot_pose[1]],descr])
-				while not is_sent:
-					is_sent = self.serv.send([[robot_pose[0][0] * px_to_m, robot_pose[0][1] * px_to_m, -robot_pose[1]],
-										descr])
-				self.send = not self.send
+				# traj_is_sent = self.serv.send([[robot_pose[0][0] * px_to_m, robot_pose[0][1] * px_to_m, -robot_pose[1]],descr])
+				# while not traj_is_sent:
+				# 	traj_is_sent = self.serv.send([[robot_pose[0][0] * px_to_m, robot_pose[0][1] * px_to_m, -robot_pose[1]],
+				# 						descr])
+
+				while not self.serv.send([[robot_pose[0][0] * px_to_m, robot_pose[0][1] * px_to_m, -robot_pose[1]],descr]):
+					self.serv.send([[robot_pose[0][0] * px_to_m, robot_pose[0][1] * px_to_m, -robot_pose[1]],descr])
+					print("I AM IN A FUCING CYCLE YOU IDIOT")
+				self.send = True
 			else:
 				path = False
 

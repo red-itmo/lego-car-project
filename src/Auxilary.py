@@ -273,7 +273,7 @@ def onSegment(p,q,r):
 
 
 def orientation(p,q,r):
-	val = (q[1] - p[1]) * (r[0] - q[0]) - (q[0] - p[0]) * (r[1] - sq[1])
+	val = (q[1] - p[1]) * (r[0] - q[0]) - (q[0] - p[0]) * (r[1] - q[1])
 
 	if(val == 0):
 		return 0
