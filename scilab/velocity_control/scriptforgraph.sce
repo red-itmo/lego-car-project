@@ -1,0 +1,14 @@
+L=0.17;
+gamm=50;
+fi0=%pi/18;
+theta0=[1;0];
+p=[10,0;0,10];
+col=3;
+path=get_absolute_file_path("scriptforgraph.sce");
+importXcosDiagram(path+'Управление_угловой_скоростью4.zcos');
+xcos_simulate(scs_m,4);
+subplot (321); plot2d(E.time,E.values,col); title('$\varepsilon(t)$','fontsize',3);
+subplot (322); plot2d(e.time,e.values,col); title('e(t)','fontsize',3);
+subplot (323); plot2d(k1.time,k1.values,col); title('K1(t)','fontsize',3);
+subplot (324); plot2d(k0.time,k0.values,col); title('k0(t)','fontsize',3);
+subplot (325); plot2d(fi.time,fi.values,col); title('fi(t)','fontsize',3);
