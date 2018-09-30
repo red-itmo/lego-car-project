@@ -18,22 +18,17 @@ import numpy as np
 import math
 import cv2 as cv
 import time
-import src.rtr_planner as planner
-import src.Mapping as mapping
-import src.Socket.Client as client
-import src.Socket.Server as server
-import src.Auxilary as aux
+import libs.rtr_planner as planner
+import libs.Mapping as mapping
+import libs.Socket.Client as client
+import libs.Socket.Server as server
+import libs.Auxilary as aux
 
 global cam_res
 global cam_pose
 global is_drawing
 
 
-# --------------------------------------------
-# WARNING
-# CHANGING BELOW HEIGHT AND WIDTH OF THE SCREEN
-# CAN LEAD TO STRANGE BEHAVIOUR
-# --------------------------------------------
 WINH = 600
 WINW = 1400
 
