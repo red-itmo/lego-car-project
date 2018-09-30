@@ -14,7 +14,7 @@ The repository includes source code for a control system for a mobile car-typed 
 - [Support](#support)
 - [Contributing](#contributing)
 
-##Description
+## Description
 
 The repository consists of three parts:
 
@@ -115,7 +115,7 @@ Please [open an issue](https://github.com/red-itmo/lego-car-project/issues/new) 
 
 Please contribute using [Github Flow](https://guides.github.com/introduction/flow/). Create a branch, add commits, and [open a pull request](https://github.com/red-itmo/lego-car-project/compare/).
 
-##Authors
+## Authors
 
 [Evgeniy Antonov](https://github.com/mrclient)
 
